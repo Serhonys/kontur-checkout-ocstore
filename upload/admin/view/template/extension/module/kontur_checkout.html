@@ -1,0 +1,2526 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Адмін-панель модуля KONTUR / OnePage Checkout — OpenCart 3.x / 4.x</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        serif: ['Playfair Display', 'Georgia', 'serif'],
+                    },
+                    colors: {
+                        ink: '#111111',
+                        surface: '#FAFAFA',
+                        borderLight: '#E5E5E5',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --oc-accent: #111111;
+            --oc-bg: #FFFFFF;
+            --oc-card-bg: #FAFAFA;
+            --oc-radius: 2px;
+            --oc-border-w: 1px;
+            --oc-btn-radius: 2px;
+            --oc-btn-weight: 500;
+            --oc-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --oc-font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --oc-input-height: 44px;
+            --oc-section-gap: 24px;
+        }
+
+        body {
+            background-color: #FFFFFF;
+            color: #111111;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAFAFA;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D4D4D4;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A3A3A3;
+        }
+
+        /* Тумблери адмін-панелі */
+        .admin-switch {
+            position: relative;
+            width: 34px;
+            height: 18px;
+            background: #E5E5E5;
+            border-radius: 9999px;
+            transition: background 0.18s ease;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .admin-switch.on {
+            background: #111111;
+        }
+        .admin-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 9999px;
+            background: #FFFFFF;
+            transition: transform 0.18s ease;
+        }
+        .admin-switch.on::after {
+            transform: translateX(16px);
+        }
+
+        /* White-Label стилі для вітрини OpenCart у Live Preview */
+        #live-storefront-mount {
+            background-color: var(--oc-bg);
+            font-family: var(--oc-font-body);
+            color: #111111;
+        }
+
+        .store-heading-font {
+            font-family: var(--oc-font-heading);
+        }
+
+        .store-surface-card {
+            background-color: var(--oc-card-bg);
+            border: var(--oc-border-w) solid #E5E5E5;
+            border-radius: var(--oc-radius);
+        }
+
+        /* 3 варіації полів вводу (Outlined / Filled / Bottom Line) */
+        .store-input {
+            width: 100%;
+            min-height: var(--oc-input-height);
+            color: #111111;
+            font-size: 13.5px;
+            padding: 0.55rem 0.85rem;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .store-input.input-style-outlined {
+            border: var(--oc-border-w) solid #DCDCDC;
+            border-radius: var(--oc-radius);
+            background-color: #FFFFFF;
+        }
+        .store-input.input-style-outlined:focus {
+            border-color: var(--oc-accent);
+        }
+
+        .store-input.input-style-filled {
+            border: var(--oc-border-w) solid transparent;
+            border-radius: var(--oc-radius);
+            background-color: var(--oc-card-bg);
+        }
+        .store-input.input-style-filled:focus {
+            border-color: var(--oc-accent);
+            background-color: #FFFFFF;
+        }
+
+        .store-input.input-style-underline {
+            border: none;
+            border-bottom: var(--oc-border-w) solid #BDBDBD;
+            border-radius: 0;
+            background-color: transparent;
+            padding-left: 0.15rem;
+            padding-right: 0.15rem;
+        }
+        .store-input.input-style-underline:focus {
+            border-bottom-color: var(--oc-accent);
+        }
+
+        .store-input.input-invalid {
+            border-color: #DC2626 !important;
+            background-color: #FEF2F2 !important;
+        }
+
+        /* Картки доставки та оплати */
+        .store-card {
+            border: var(--oc-border-w) solid #E5E5E5;
+            border-radius: var(--oc-radius);
+            background: #FFFFFF;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .store-card:hover {
+            border-color: #9E9E9E;
+        }
+        .store-card.active {
+            border-color: var(--oc-accent);
+            background: var(--oc-card-bg);
+            box-shadow: inset 0 0 0 0.5px var(--oc-accent);
+        }
+
+        /* 3 стилі секцій форми (Bordered Cards / Horizontal Dividers / Clean Flat) */
+        .store-section-bordered {
+            border: var(--oc-border-w) solid #E5E5E5;
+            border-radius: var(--oc-radius);
+            background-color: #FFFFFF;
+            padding: 1.15rem;
+        }
+        .store-section-dividers {
+            border-bottom: var(--oc-border-w) solid #E5E5E5;
+            padding-bottom: 1.25rem;
+        }
+        .store-section-flat {
+            padding: 0.25rem 0;
+        }
+
+        /* Кнопка підтвердження замовлення */
+        .store-btn-primary {
+            background-color: var(--oc-accent);
+            color: #FFFFFF;
+            border-radius: var(--oc-btn-radius);
+            font-weight: var(--oc-btn-weight);
+            transition: opacity 0.15s ease, transform 0.1s ease;
+        }
+        .store-btn-primary:hover {
+            opacity: 0.92;
+        }
+        .store-btn-primary:active {
+            transform: scale(0.99);
+        }
+
+        .store-badge-accent {
+            background-color: var(--oc-accent);
+            color: #FFFFFF;
+        }
+
+        .store-border-accent {
+            border-color: var(--oc-accent) !important;
+        }
+
+        .store-text-accent {
+            color: var(--oc-accent) !important;
+        }
+
+        .store-radio-dot {
+            width: 16px;
+            height: 16px;
+            border: var(--oc-border-w) solid #BDBDBD;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: #FFFFFF;
+        }
+        .store-card.active .store-radio-dot {
+            border-color: var(--oc-accent);
+        }
+        .store-radio-dot-inner {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            background: var(--oc-accent);
+            transform: scale(0);
+            transition: transform 0.15s ease;
+        }
+        .store-card.active .store-radio-dot-inner {
+            transform: scale(1);
+        }
+
+        .store-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: var(--oc-border-w) solid #BDBDBD;
+            border-radius: calc(var(--oc-radius) * 0.5);
+            background: #FFFFFF;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .store-checkbox:checked {
+            background: var(--oc-accent);
+            border-color: var(--oc-accent);
+        }
+        .store-checkbox:checked::after {
+            content: '';
+            width: 4px;
+            height: 9px;
+            border: solid #FFFFFF;
+            border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+            margin-bottom: 2px;
+        }
+
+        /* Симуляція Mobile 390px всередині контейнера Live Preview */
+        #preview-device-frame {
+            transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #preview-device-frame.device-mobile {
+            width: 390px !important;
+            max-width: 100%;
+            margin: 20px auto 32px auto;
+            border: 1px solid #111111;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+        }
+
+        #preview-device-frame.device-desktop {
+            width: 100%;
+            margin: 0;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.18s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <style id="custom-module-css-tag"></style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden selection:bg-ink selection:text-white">
+<script>
+window.KONTUR_SAVED_CONFIG = __KONTUR_CONFIG_JSON__;
+window.KONTUR_SAVE_URL = "__KONTUR_SAVE_URL__";
+window.KONTUR_BACK_URL = "__KONTUR_BACK_URL__";
+</script>
+
+
+    <!-- ===================================================================== -->
+    <!-- 1. ВЕРХНЯ ШАПКА АДМІНКИ OPENCART (ADMIN HEADER BAR)                   -->
+    <!-- ===================================================================== -->
+    <header class="h-14 border-b border-borderLight bg-white px-4 lg:px-5 flex items-center justify-between gap-2 shrink-0 z-30">
+        <!-- Ліва частина: Назва модуля та route бейдж -->
+        <div class="flex items-center gap-2.5 min-w-0">
+            <a href="__KONTUR_BACK_URL__" class="px-2 py-1 text-[11px] text-neutral-500 hover:text-white border border-neutral-700 rounded shrink-0">← Модулі</a>
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="w-7 h-7 rounded bg-ink text-white font-mono text-xs font-semibold flex items-center justify-center">OC</span>
+                <span class="font-semibold text-xs tracking-wider uppercase text-ink truncate">KONTUR / OnePage Checkout</span>
+            </div>
+            <span class="hidden md:inline-block px-2 py-0.5 bg-surface border border-borderLight rounded font-mono text-[11px] text-neutral-600 shrink-0">
+                extension/module/kontur_checkout
+            </span>
+        </div>
+
+        <!-- Центр: Глобальний статус та швидкі пресети -->
+        <div class="hidden xl:flex items-center gap-3">
+            <div class="flex items-center gap-2 px-2.5 py-1 border border-borderLight rounded bg-surface">
+                <span class="text-[11px] text-neutral-500">Статус:</span>
+                <button type="button" id="global-status-btn" onclick="toggleGlobalStatus()" class="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink">
+                    <span id="global-status-dot" class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span id="global-status-text">Увімкнено</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <span class="text-[11px] text-neutral-400">Пресет:</span>
+                <button type="button" onclick="applyPreset('minimal')" data-preset="minimal" class="preset-btn px-2.5 py-1 text-[11px] border border-borderLight hover:border-ink rounded bg-white text-ink transition-colors">
+                    Мінімалізм
+                </button>
+                <button type="button" onclick="applyPreset('standard')" data-preset="standard" class="preset-btn px-2.5 py-1 text-[11px] border border-ink rounded bg-ink text-white transition-colors">
+                    Повний стандарт
+                </button>
+                <button type="button" onclick="applyPreset('b2b')" data-preset="b2b" class="preset-btn px-2.5 py-1 text-[11px] border border-borderLight hover:border-ink rounded bg-white text-ink transition-colors">
+                    B2B / Опт
+                </button>
+            </div>
+        </div>
+
+        <!-- Права частина: Імпорт JSON, Експорт JSON, Скинути, Зберегти -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button type="button" onclick="openImportModal()" class="px-2.5 py-1.5 text-xs font-mono text-ink border border-borderLight hover:border-ink rounded bg-white transition-colors hidden sm:inline-flex items-center gap-1" title="Імпортувати конфігурацію JSON">
+                <span>↓ Імпорт JSON</span>
+            </button>
+            <button type="button" onclick="openJsonModal()" class="px-2.5 py-1.5 text-xs font-mono text-ink border border-borderLight hover:border-ink rounded bg-surface hover:bg-white transition-colors flex items-center gap-1">
+                <span>{ }</span>
+                <span class="hidden md:inline">Експорт JSON</span>
+            </button>
+            <button type="button" onclick="resetAdminConfig()" class="px-2.5 py-1.5 text-xs text-neutral-600 hover:text-ink border border-borderLight hover:border-ink rounded bg-white transition-colors">
+                Скинути
+            </button>
+            <button type="button" onclick="saveAdminConfig()" class="px-3 py-1.5 text-xs font-medium bg-ink hover:bg-neutral-800 text-white rounded transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span>Зберегти</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Додаткова панель для мобільних/планшетних екранів (<1280px) -->
+    <div class="xl:hidden border-b border-borderLight bg-surface px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
+        <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[11px] text-neutral-500">Пресет:</span>
+            <button type="button" onclick="applyPreset('minimal')" class="px-2 py-0.5 text-[11px] border border-borderLight rounded bg-white text-ink">Мінімалізм</button>
+            <button type="button" onclick="applyPreset('standard')" class="px-2 py-0.5 text-[11px] border border-ink rounded bg-ink text-white">Стандарт</button>
+            <button type="button" onclick="applyPreset('b2b')" class="px-2 py-0.5 text-[11px] border border-borderLight rounded bg-white text-ink">B2B / Опт</button>
+        </div>
+        <div class="flex lg:hidden border border-borderLight rounded bg-white p-0.5 shrink-0">
+            <button type="button" id="mobile-pane-admin" onclick="switchMobilePane('admin')" class="px-2.5 py-1 text-[11px] font-medium rounded-sm bg-ink text-white">Налаштування</button>
+            <button type="button" id="mobile-pane-preview" onclick="switchMobilePane('preview')" class="px-2.5 py-1 text-[11px] font-medium rounded-sm text-neutral-600">Прев'ю вітрини</button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 2. ОСНОВНИЙ SPLIT-SCREEN WORKBENCH (ЛІВОРУЧ АДМІНКА 460px / ПРАВОРУЧ) -->
+    <!-- ===================================================================== -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- ==================== ЛІВА ПАНЕЛЬ: КОНФІГУРАТОР (6 ВКЛАДОК) ==================== -->
+        <aside id="admin-configurator-pane" class="w-full lg:w-[460px] border-r border-borderLight bg-white flex flex-col shrink-0 h-full">
+
+            <!-- Навігація 6 вкладок конфігуратора -->
+            <div class="border-b border-borderLight bg-surface px-2 pt-2 flex gap-1 overflow-x-auto shrink-0">
+                <button type="button" onclick="switchAdminTab('fields')" data-admin-tab="fields" class="admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-ink text-ink whitespace-nowrap transition-colors">
+                    1. Поля покупця
+                </button>
+                <button type="button" onclick="switchAdminTab('shipping')" data-admin-tab="shipping" class="admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-transparent text-neutral-500 hover:text-ink whitespace-nowrap transition-colors">
+                    2. Доставка
+                </button>
+                <button type="button" onclick="switchAdminTab('payment')" data-admin-tab="payment" class="admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-transparent text-neutral-500 hover:text-ink whitespace-nowrap transition-colors">
+                    3. Оплата і зв'язки
+                </button>
+                <button type="button" onclick="switchAdminTab('layout')" data-admin-tab="layout" class="admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-transparent text-neutral-500 hover:text-ink whitespace-nowrap transition-colors">
+                    4. Структура та UX
+                </button>
+                <button type="button" onclick="switchAdminTab('theme')" data-admin-tab="theme" class="admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-transparent text-neutral-500 hover:text-ink whitespace-nowrap transition-colors">
+                    5. Стилі та тема
+                </button>
+                <button type="button" onclick="switchAdminTab('integrations')" data-admin-tab="integrations" class="admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-transparent text-neutral-500 hover:text-ink whitespace-nowrap transition-colors">
+                    6. Інтеграції та UA
+                </button>
+            </div>
+
+            <!-- Контейнер вмісту вкладок зі скролом -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+
+                <!-- ==================== ВКЛАДКА 1: ПОЛЯ ПОКУПЦЯ ==================== -->
+                <div id="tab-content-fields" class="admin-tab-panel space-y-4 fade-in">
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-sm font-semibold text-ink">Конструктор полів покупця</h2>
+                            <p class="text-[11px] text-neutral-500 mt-0.5">Тип поля, плейсхолдер, ширина колонки, обов'язковість та порядок</p>
+                        </div>
+                        <button type="button" onclick="openAddCustomFieldForm()" class="px-2.5 py-1.5 text-xs font-medium border border-ink bg-white hover:bg-ink hover:text-white text-ink rounded transition-colors shrink-0">
+                            + Додати поле
+                        </button>
+                    </div>
+
+                    <!-- Форма додавання кастомного поля -->
+                    <div id="add-custom-field-box" class="hidden border border-ink bg-surface p-3.5 rounded space-y-3 fade-in">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-ink">Нове кастомне поле OpenCart</span>
+                            <button type="button" onclick="closeAddCustomFieldForm()" class="text-xs text-neutral-400 hover:text-ink">✕</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block text-[11px] text-neutral-600 mb-1">Назва поля (Label)</label>
+                                <input type="text" id="new-field-label" placeholder="Напр. Instagram або Код бонусу" class="w-full px-2.5 py-1.5 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-neutral-600 mb-1">Placeholder</label>
+                                <input type="text" id="new-field-placeholder" placeholder="@username" class="w-full px-2.5 py-1.5 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block text-[11px] text-neutral-600 mb-1">Тип поля</label>
+                                <select id="new-field-type" class="w-full px-2.5 py-1.5 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                    <option value="text">text (Звичайний текст)</option>
+                                    <option value="tel">tel (Телефон)</option>
+                                    <option value="email">email (Електронна пошта)</option>
+                                    <option value="textarea">textarea (Багаторядкове)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-neutral-600 mb-1">Ширина в сітці</label>
+                                <select id="new-field-width" class="w-full px-2.5 py-1.5 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                    <option value="half">50% (1/2 рядка)</option>
+                                    <option value="full">100% (весь рядок)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex justify-end pt-1">
+                            <button type="button" onclick="confirmAddCustomField()" class="px-3.5 py-1.5 text-xs font-medium bg-ink text-white rounded hover:bg-neutral-800">
+                                Додати в форму
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="admin-fields-list" class="space-y-2.5"></div>
+                </div>
+
+                <!-- ==================== ВКЛАДКА 2: ДОСТАВКА ==================== -->
+                <div id="tab-content-shipping" class="admin-tab-panel hidden space-y-4 fade-in">
+                    <div>
+                        <h2 class="text-sm font-semibold text-ink">Налаштування доставки</h2>
+                        <p class="text-[11px] text-neutral-500 mt-0.5">Служби доставки України, тарифи, поріг безкоштовної доставки та швидкі міста</p>
+                    </div>
+
+                    <!-- Логіка порядку заповнення доставки -->
+                    <div class="border border-borderLight bg-surface p-3.5 rounded space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Доставка першим кроком (спочатку служба)</div>
+                                <div class="text-[11px] text-neutral-400">Спочатку вибір перевізника, потім контекстні поля адреси</div>
+                            </div>
+                            <button type="button" id="sw-shipping-first" onclick="toggleBooleanConfig('shippingMethodFirst', 'sw-shipping-first')" class="admin-switch on"></button>
+                        </div>
+
+                        <div class="pt-2.5 border-t border-borderLight flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Швидкі теги міст (чіпси)</div>
+                                <div class="text-[11px] text-neutral-400">Вибір міста одним тапом під полем вводу</div>
+                            </div>
+                            <button type="button" id="sw-city-chips" onclick="toggleBooleanConfig('showCityChips', 'sw-city-chips')" class="admin-switch on"></button>
+                        </div>
+
+                        <!-- Керування чіпсами міст -->
+                        <div class="space-y-2">
+                            <div class="flex gap-1.5">
+                                <input type="text" id="new-city-chip-input" placeholder="Додати місто (напр. Вінниця)..." class="flex-1 px-2.5 py-1.5 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                <button type="button" onclick="addCityChip()" class="px-3 py-1.5 text-xs font-medium border border-ink bg-white hover:bg-ink hover:text-white rounded transition-colors">
+                                    Додати
+                                </button>
+                            </div>
+                            <div id="admin-city-chips-list" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-shipping-list" class="space-y-3"></div>
+                </div>
+
+                <!-- ==================== ВКЛАДКА 3: ОПЛАТА І ЗВ'ЯЗКИ ==================== -->
+                <div id="tab-content-payment" class="admin-tab-panel hidden space-y-5 fade-in">
+                    <div>
+                        <h2 class="text-sm font-semibold text-ink">Способи оплати та матриця зв'язків</h2>
+                        <p class="text-[11px] text-neutral-500 mt-0.5">Налаштування платіжних методів і правил їх сумісності зі службами доставки</p>
+                    </div>
+
+                    <div id="admin-payment-list" class="space-y-2.5"></div>
+
+                    <div class="pt-3 border-t border-borderLight space-y-3">
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-ink">Матриця «Доставка ↔ Оплата»</h3>
+                            <p class="text-[11px] text-neutral-500 mt-0.5">Відмітьте, які оплати дозволені для кожного способу доставки</p>
+                        </div>
+
+                        <div class="border border-borderLight rounded overflow-x-auto">
+                            <table class="w-full text-[11px] border-collapse">
+                                <thead class="bg-surface border-b border-borderLight text-neutral-600">
+                                    <tr>
+                                        <th class="text-left font-medium p-2.5">Доставка \ Оплата</th>
+                                        <th class="text-center font-medium p-2">Картка</th>
+                                        <th class="text-center font-medium p-2">Післяплата</th>
+                                        <th class="text-center font-medium p-2">IBAN</th>
+                                        <th class="text-center font-medium p-2">Готівка</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dependency-matrix-body" class="divide-y divide-borderLight"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== ВКЛАДКА 4: СТРУКТУРА ТА UX ==================== -->
+                <div id="tab-content-layout" class="admin-tab-panel hidden space-y-5 fade-in">
+                    <div>
+                        <h2 class="text-sm font-semibold text-ink">Структура сітки та UX-тригери</h2>
+                        <p class="text-[11px] text-neutral-500 mt-0.5">Компонування десктопа, мобільна поведінка та конверсійні елементи</p>
+                    </div>
+
+                    <!-- Сітка десктопа -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-ink">Сітка на Desktop</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="setDesktopLayout('62-38')" data-layout="62-38" class="layout-opt-btn p-2.5 border border-ink bg-surface rounded text-left">
+                                <div class="flex gap-1 h-4 mb-1.5">
+                                    <div class="w-3/5 bg-ink rounded-xs"></div>
+                                    <div class="w-2/5 bg-neutral-300 rounded-xs"></div>
+                                </div>
+                                <div class="text-[11px] font-medium text-ink">62% / 38%</div>
+                                <div class="text-[10px] text-neutral-400">Асиметрична</div>
+                            </button>
+                            <button type="button" onclick="setDesktopLayout('50-50')" data-layout="50-50" class="layout-opt-btn p-2.5 border border-borderLight bg-white rounded text-left hover:border-ink">
+                                <div class="flex gap-1 h-4 mb-1.5">
+                                    <div class="w-1/2 bg-ink rounded-xs"></div>
+                                    <div class="w-1/2 bg-neutral-300 rounded-xs"></div>
+                                </div>
+                                <div class="text-[11px] font-medium text-ink">50% / 50%</div>
+                                <div class="text-[10px] text-neutral-400">Рівна</div>
+                            </button>
+                            <button type="button" onclick="setDesktopLayout('single')" data-layout="single" class="layout-opt-btn p-2.5 border border-borderLight bg-white rounded text-left hover:border-ink">
+                                <div class="flex flex-col gap-1 h-4 mb-1.5 justify-center">
+                                    <div class="w-3/4 mx-auto h-1.5 bg-ink rounded-xs"></div>
+                                    <div class="w-3/4 mx-auto h-1.5 bg-neutral-300 rounded-xs"></div>
+                                </div>
+                                <div class="text-[11px] font-medium text-ink">1 колонка</div>
+                                <div class="text-[10px] text-neutral-400">Центрована 760px</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mobile-First патерн -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-ink">Mobile-First патерн кошика (&lt; 1024px)</label>
+                        <select id="cfg-mobile-pattern" onchange="setMobilePattern(this.value)" class="w-full px-3 py-2 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                            <option value="accordion_sticky">Верхній акордеон + Sticky Bar знизу (Рекомендовано)</option>
+                            <option value="compact_top">Компактний список товарів зверху + Sticky Bar</option>
+                            <option value="sticky_only">Тільки фіксований Sticky Bar знизу</option>
+                        </select>
+                    </div>
+
+                    <!-- UX та конверсійні перемикачі -->
+                    <div class="border border-borderLight rounded divide-y divide-borderLight">
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Прогрес-бар безкоштовної доставки</div>
+                                <div class="text-[11px] text-neutral-400">Мотиваційна шкала до порогу безкоштовної доставки</div>
+                            </div>
+                            <button type="button" id="sw-free-bar" onclick="toggleBooleanConfig('showFreeShippingBar', 'sw-free-bar')" class="admin-switch on"></button>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Таймер резерву товарів у кошику (15:00)</div>
+                                <div class="text-[11px] text-neutral-400">Зворотний відлік утримання товару на складі</div>
+                            </div>
+                            <button type="button" id="sw-reserve-timer" onclick="toggleBooleanConfig('showReserveTimer', 'sw-reserve-timer')" class="admin-switch"></button>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Промокоди та сертифікати (SALE10 / GIFT1000)</div>
+                                <div class="text-[11px] text-neutral-400">Поле активації купонів у блоці замовлення</div>
+                            </div>
+                            <button type="button" id="sw-promo" onclick="toggleBooleanConfig('showPromo', 'sw-promo')" class="admin-switch on"></button>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Додаткова опція «Подарункове пакування (+ 95 ₴)»</div>
+                                <div class="text-[11px] text-neutral-400">Чекбокс у кошику з автоматичним перерахунком</div>
+                            </div>
+                            <button type="button" id="sw-gift-wrap" onclick="toggleBooleanConfig('showGiftWrap', 'sw-gift-wrap')" class="admin-switch on"></button>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Чекбокс «Не телефонувати для підтвердження»</div>
+                                <div class="text-[11px] text-neutral-400">Автоматична відправка ТТН у Viber / Telegram / SMS</div>
+                            </div>
+                            <button type="button" id="sw-nocall" onclick="toggleBooleanConfig('showNoCall', 'sw-nocall')" class="admin-switch on"></button>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Таби статусу («Новий покупець» / «Постійний клієнт»)</div>
+                                <div class="text-[11px] text-neutral-400">Швидкий вхід в акаунт OpenCart у блоці 1</div>
+                            </div>
+                            <button type="button" id="sw-customer-tabs" onclick="toggleBooleanConfig('showCustomerTabs', 'sw-customer-tabs')" class="admin-switch on"></button>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Обов'язкова згода з політикою конфіденційності</div>
+                                <div class="text-[11px] text-neutral-400">Чекбокс публічної оферти перед кнопкою замовлення</div>
+                            </div>
+                            <button type="button" id="sw-privacy" onclick="toggleBooleanConfig('requirePrivacyPolicy', 'sw-privacy')" class="admin-switch on"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== ВКЛАДКА 5: СТИЛІ ТА ДИЗАЙН-ТЕМИ ==================== -->
+                <div id="tab-content-theme" class="admin-tab-panel hidden space-y-5 fade-in">
+                    <div>
+                        <h2 class="text-sm font-semibold text-ink">Дизайн-теми та CSS-токени (White-Label)</h2>
+                        <p class="text-[11px] text-neutral-500 mt-0.5">6 готових пресетів дизайну + детальне налаштування кольорів, шрифтів, полів та кнопок</p>
+                    </div>
+
+                    <!-- 6 ГОТОВИХ ВІЗУАЛЬНИХ ТЕМАТИЧНИХ ПРЕСЕТІВ -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-ink">Готові дизайн-теми вітрини</label>
+                        <div class="grid grid-cols-2 gap-2" id="design-themes-grid"></div>
+                    </div>
+
+                    <!-- Кольори: Акцент, Фон сторінки, Фон карток -->
+                    <div class="border border-borderLight rounded p-3.5 space-y-3 bg-surface/50">
+                        <div class="text-xs font-semibold text-ink">Палітра кольорів</div>
+
+                        <!-- Основний акцент -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] text-neutral-600">Основний акцентний колір</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" id="cfg-accent-picker" value="#111111" oninput="setAccentColor(this.value)" class="w-9 h-8 p-0.5 border border-borderLight rounded bg-white cursor-pointer">
+                                <input type="text" id="cfg-accent-hex" value="#111111" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) setAccentColor(this.value)" class="w-24 px-2 py-1 text-xs font-mono border border-borderLight rounded bg-white uppercase">
+                                <div class="flex gap-1.5 ml-auto">
+                                    <button type="button" onclick="setAccentColor('#111111')" class="w-6 h-6 rounded-full bg-[#111111] border border-neutral-300" title="Swiss Black"></button>
+                                    <button type="button" onclick="setAccentColor('#1C1917')" class="w-6 h-6 rounded-full bg-[#1C1917] border border-neutral-300" title="Editorial Stone"></button>
+                                    <button type="button" onclick="setAccentColor('#2C2A29')" class="w-6 h-6 rounded-full bg-[#2C2A29] border border-neutral-300" title="Warm Espresso"></button>
+                                    <button type="button" onclick="setAccentColor('#1E293B')" class="w-6 h-6 rounded-full bg-[#1E293B] border border-neutral-300" title="Nordic Slate"></button>
+                                    <button type="button" onclick="setAccentColor('#0F766E')" class="w-6 h-6 rounded-full bg-[#0F766E] border border-neutral-300" title="Deep Teal"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Фон вітрини та фон карток -->
+                        <div class="grid grid-cols-2 gap-2.5 pt-1">
+                            <div>
+                                <label class="block text-[11px] text-neutral-600 mb-1">Фон сторінки</label>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="color" id="cfg-bg-picker" value="#FFFFFF" oninput="setSurfaceColors(this.value, config.theme.cardBg)" class="w-7 h-7 p-0.5 border border-borderLight rounded bg-white cursor-pointer">
+                                    <span id="cfg-bg-label" class="text-[11px] font-mono text-neutral-600">#FFFFFF</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-neutral-600 mb-1">Фон карток / блоків</label>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="color" id="cfg-card-picker" value="#FAFAFA" oninput="setSurfaceColors(config.theme.bg, this.value)" class="w-7 h-7 p-0.5 border border-borderLight rounded bg-white cursor-pointer">
+                                    <span id="cfg-card-label" class="text-[11px] font-mono text-neutral-600">#FAFAFA</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Типографіка та щільність -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-ink mb-1">Шрифтова система</label>
+                            <select id="cfg-font-family" onchange="setFontFamily(this.value)" class="w-full px-2.5 py-2 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                <option value="inter">Inter / Onest (Гротеск)</option>
+                                <option value="mono">JetBrains Mono (Технічний)</option>
+                                <option value="serif">Playfair Display (Editorial)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-ink mb-1">Щільність інтерфейсу</label>
+                            <select id="cfg-density" onchange="setUiDensity(this.value)" class="w-full px-2.5 py-2 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                <option value="compact">Compact (Щільна)</option>
+                                <option value="standard" selected>Standard (Базова)</option>
+                                <option value="spacious">Spacious (Повітряна)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Стиль полів вводу (Input Style) -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-medium text-ink">Стиль полів вводу (Inputs)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="setInputStyle('outlined')" data-istyle="outlined" class="istyle-btn py-2 px-2 text-[11px] border border-ink bg-ink text-white rounded">Outlined 1px</button>
+                            <button type="button" onclick="setInputStyle('filled')" data-istyle="filled" class="istyle-btn py-2 px-2 text-[11px] border border-borderLight bg-white text-ink hover:border-ink rounded">Filled Surface</button>
+                            <button type="button" onclick="setInputStyle('underline')" data-istyle="underline" class="istyle-btn py-2 px-2 text-[11px] border border-borderLight bg-white text-ink hover:border-ink rounded">Bottom Line</button>
+                        </div>
+                    </div>
+
+                    <!-- Стиль секцій форми -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-medium text-ink">Оформлення секцій кроків</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="setSectionStyle('dividers')" data-sstyle="dividers" class="sstyle-btn py-2 px-2 text-[11px] border border-ink bg-ink text-white rounded">Тонкі лінії</button>
+                            <button type="button" onclick="setSectionStyle('bordered')" data-sstyle="bordered" class="sstyle-btn py-2 px-2 text-[11px] border border-borderLight bg-white text-ink hover:border-ink rounded">Картки з рамкою</button>
+                            <button type="button" onclick="setSectionStyle('flat')" data-sstyle="flat" class="sstyle-btn py-2 px-2 text-[11px] border border-borderLight bg-white text-ink hover:border-ink rounded">Clean Flat</button>
+                        </div>
+                    </div>
+
+                    <!-- Геометрія та вага головної кнопки CTA -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-ink mb-1">Форма кнопки CTA</label>
+                            <select id="cfg-btn-shape" onchange="setButtonShape(this.value)" class="w-full px-2.5 py-2 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                <option value="standard">Standard Radius</option>
+                                <option value="sharp">Sharp 0px (Гострі кути)</option>
+                                <option value="pill">Pill 999px (Капсула)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-ink mb-1">Насиченість шрифту CTA</label>
+                            <select id="cfg-btn-weight" onchange="setButtonWeight(this.value)" class="w-full px-2.5 py-2 text-xs border border-borderLight rounded bg-white outline-none focus:border-ink">
+                                <option value="500">500 (Medium)</option>
+                                <option value="600">600 (SemiBold)</option>
+                                <option value="700">700 (Bold)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Радіус скруглення та товщина рамок -->
+                    <div class="space-y-3 pt-1">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="cfg-radius-slider" class="text-xs font-medium text-ink">Радіус скруглення елементів</label>
+                                <span id="cfg-radius-val" class="text-xs font-mono text-ink bg-surface border border-borderLight px-2 py-0.5 rounded">2px</span>
+                            </div>
+                            <input type="range" id="cfg-radius-slider" min="0" max="16" step="2" value="2" oninput="setBorderRadius(this.value)" class="w-full accent-ink cursor-pointer">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-ink mb-1.5">Товщина контурних ліній</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" onclick="setBorderWidth('1px')" data-bw="1px" class="bw-btn py-1.5 text-xs font-mono border border-ink bg-ink text-white rounded">1px</button>
+                                <button type="button" onclick="setBorderWidth('1.5px')" data-bw="1.5px" class="bw-btn py-1.5 text-xs font-mono border border-borderLight bg-white text-ink hover:border-ink rounded">1.5px</button>
+                                <button type="button" onclick="setBorderWidth('2px')" data-bw="2px" class="bw-btn py-1.5 text-xs font-mono border border-borderLight bg-white text-ink hover:border-ink rounded">2px</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кастомний CSS -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label for="cfg-custom-css" class="text-xs font-medium text-ink">Кастомний CSS (Live Inject)</label>
+                            <span class="text-[10px] font-mono text-neutral-400">CSS Override</span>
+                        </div>
+                        <textarea id="cfg-custom-css" rows="3" oninput="applyCustomCss(this.value)" placeholder="/* Напр.: .store-btn-primary { text-transform: uppercase; letter-spacing: 0.08em; } */" class="w-full p-2.5 text-xs font-mono border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- ==================== ВКЛАДКА 6: ІНТЕГРАЦІЇ ТА UA ==================== -->
+                <div id="tab-content-integrations" class="admin-tab-panel hidden space-y-5 fade-in">
+                    <div>
+                        <h2 class="text-sm font-semibold text-ink">Інтеграції для України та аналітика</h2>
+                        <p class="text-[11px] text-neutral-500 mt-0.5">API Нової Пошти, валідація мобільних операторів UA, ПРРО Checkbox та події GA4</p>
+                    </div>
+
+                    <!-- API Нової Пошти -->
+                    <div class="border border-borderLight rounded p-3.5 space-y-3 bg-surface/60">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-semibold text-ink">API Нової Пошти (Довідник відділень)</div>
+                            <span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-[10px] rounded">API v2.0 Active</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-neutral-600 mb-1">API-ключ кабінету Нової Пошти</label>
+                            <input type="text" id="cfg-np-api-key" value="np_live_98a4f21c8e7b304d91a2" oninput="config.integrations.npApiKey = this.value" class="w-full px-2.5 py-1.5 text-xs font-mono border border-borderLight rounded bg-white outline-none focus:border-ink">
+                        </div>
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Живий пошук відділень та поштоматів</div>
+                                <div class="text-[11px] text-neutral-400">Фільтрація за номером або вулицею в реальному часі</div>
+                            </div>
+                            <button type="button" id="sw-np-live-search" onclick="toggleIntegrationFlag('npLiveSearch', 'sw-np-live-search')" class="admin-switch on"></button>
+                        </div>
+                    </div>
+
+                    <!-- Валідація українських операторів -->
+                    <div class="border border-borderLight rounded p-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Валідація кодів мобільних операторів України</div>
+                                <div class="text-[11px] text-neutral-400">Перевірка кодів 067, 068, 096, 097, 098, 050, 066, 095, 099, 063, 073, 093</div>
+                            </div>
+                            <button type="button" id="sw-ua-operator" onclick="toggleIntegrationFlag('validateUaOperator', 'sw-ua-operator')" class="admin-switch on"></button>
+                        </div>
+                    </div>
+
+                    <!-- Платіжні шлюзи та фіскалізація ПРРО -->
+                    <div class="border border-borderLight rounded divide-y divide-borderLight">
+                        <div class="p-3 bg-surface text-xs font-semibold text-ink">Еквайринг та фіскалізація</div>
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Monobank Acquiring (Plata by mono)</div>
+                                <div class="text-[11px] text-neutral-400">Apple Pay, Google Pay та оплата частинами</div>
+                            </div>
+                            <button type="button" id="sw-gw-mono" onclick="toggleIntegrationFlag('gatewayMonobank', 'sw-gw-mono')" class="admin-switch on"></button>
+                        </div>
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">WayForPay / LiqPay</div>
+                                <div class="text-[11px] text-neutral-400">Резервний платіжний шлюз для карток Visa / Mastercard</div>
+                            </div>
+                            <button type="button" id="sw-gw-wfp" onclick="toggleIntegrationFlag('gatewayWayForPay', 'sw-gw-wfp')" class="admin-switch on"></button>
+                        </div>
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Checkbox ПРРО (Автофіскалізація)</div>
+                                <div class="text-[11px] text-neutral-400">Автоматичне формування фіскального чека після оплати</div>
+                            </div>
+                            <button type="button" id="sw-prro-checkbox" onclick="toggleIntegrationFlag('prroCheckbox', 'sw-prro-checkbox')" class="admin-switch on"></button>
+                        </div>
+                    </div>
+
+                    <!-- Події аналітики GA4 / Meta Pixel -->
+                    <div class="border border-borderLight rounded divide-y divide-borderLight">
+                        <div class="p-3 bg-surface text-xs font-semibold text-ink">E-commerce аналітика (DataLayer)</div>
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Google Analytics 4 (GTM DataLayer)</div>
+                                <div class="text-[11px] font-mono text-neutral-400">begin_checkout, add_shipping_info, add_payment_info, purchase</div>
+                            </div>
+                            <button type="button" id="sw-ga4" onclick="toggleIntegrationFlag('analyticsGA4', 'sw-ga4')" class="admin-switch on"></button>
+                        </div>
+                        <div class="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">Meta Pixel (Facebook Conversions)</div>
+                                <div class="text-[11px] font-mono text-neutral-400">InitiateCheckout, AddPaymentInfo, Purchase</div>
+                            </div>
+                            <button type="button" id="sw-meta-pixel" onclick="toggleIntegrationFlag('analyticsMetaPixel', 'sw-meta-pixel')" class="admin-switch on"></button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- ==================== ПРАВА ПАНЕЛЬ: LIVE STOREFRONT PREVIEW ==================== -->
+        <main id="live-preview-pane" class="hidden lg:flex flex-1 flex-col bg-[#F2F2F2] overflow-hidden h-full">
+
+            <!-- Верхній тулбар Live Preview -->
+            <div class="h-11 border-b border-borderLight bg-white px-4 flex items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2 text-xs min-w-0">
+                    <span class="inline-flex items-center gap-1.5 text-ink font-medium shrink-0">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Live Preview
+                    </span>
+                    <span class="text-neutral-300">|</span>
+                    <span id="active-theme-badge" class="px-2 py-0.5 bg-surface border border-borderLight rounded font-mono text-[10px] text-ink truncate">
+                        Тема: Swiss Thin (1px)
+                    </span>
+                </div>
+
+                <!-- Перемикач Desktop / Mobile 390px -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="flex items-center bg-surface border border-borderLight rounded p-0.5">
+                        <button type="button" id="preview-btn-desktop" onclick="setPreviewDevice('desktop')" class="px-2.5 py-1 text-[11px] font-medium rounded-sm bg-ink text-white transition-colors flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                            </svg>
+                            <span>Desktop</span>
+                        </button>
+                        <button type="button" id="preview-btn-mobile" onclick="setPreviewDevice('mobile')" class="px-2.5 py-1 text-[11px] font-medium rounded-sm text-neutral-600 hover:text-ink transition-colors flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                            </svg>
+                            <span>Mobile 390px</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Прокручувана область рендеру вітрини OpenCart -->
+            <div class="flex-1 overflow-y-auto" id="preview-scroll-container">
+                <div id="preview-device-frame" class="device-desktop min-h-full flex flex-col">
+                    <div id="live-storefront-mount" class="flex-1 flex flex-col"></div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 3. МОДАЛЬНЕ ВІКНО ЕКСПОРТУ JSON (oc_setting)                          -->
+    <!-- ===================================================================== -->
+    <div id="json-export-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]">
+        <div class="bg-white border border-ink rounded max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh] fade-in">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-borderLight">
+                <div>
+                    <h3 class="text-base font-semibold text-ink">Експорт конфігурації (oc_setting JSON)</h3>
+                    <p class="text-xs text-neutral-500">Готовий об'єкт для <code class="font-mono text-ink">extension/module/kontur_checkout</code></p>
+                </div>
+                <button type="button" onclick="closeJsonModal()" class="text-neutral-400 hover:text-ink text-base px-2">✕</button>
+            </div>
+
+            <pre id="json-export-output" class="flex-1 overflow-y-auto bg-surface border border-borderLight rounded p-4 text-[11px] font-mono text-ink leading-relaxed select-all"></pre>
+
+            <div class="flex items-center justify-end gap-2.5 pt-4 mt-4 border-t border-borderLight">
+                <button type="button" onclick="copyJsonConfig()" class="px-4 py-2 bg-ink text-white text-xs font-medium rounded hover:bg-neutral-800 transition-colors">
+                    Скопіювати JSON
+                </button>
+                <button type="button" onclick="closeJsonModal()" class="px-4 py-2 border border-borderLight text-ink text-xs font-medium rounded hover:border-ink transition-colors">
+                    Закрити
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 4. МОДАЛЬНЕ ВІКНО ІМПОРТУ JSON                                        -->
+    <!-- ===================================================================== -->
+    <div id="json-import-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]">
+        <div class="bg-white border border-ink rounded max-w-xl w-full p-6 shadow-2xl flex flex-col gap-4 fade-in">
+            <div class="flex items-center justify-between pb-3 border-b border-borderLight">
+                <div>
+                    <h3 class="text-base font-semibold text-ink">Імпорт JSON-конфігурації</h3>
+                    <p class="text-xs text-neutral-500">Вставте раніше експортований JSON налаштувань модуля</p>
+                </div>
+                <button type="button" onclick="closeImportModal()" class="text-neutral-400 hover:text-ink text-base px-2">✕</button>
+            </div>
+
+            <textarea id="json-import-input" rows="8" placeholder='{"module":"extension/module/kontur_checkout","settings":{...}}' class="w-full p-3 text-xs font-mono border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none resize-none"></textarea>
+
+            <div class="flex items-center justify-end gap-2.5">
+                <button type="button" onclick="applyImportedJson()" class="px-4 py-2 bg-ink text-white text-xs font-medium rounded hover:bg-neutral-800 transition-colors">
+                    Застосувати конфігурацію
+                </button>
+                <button type="button" onclick="closeImportModal()" class="px-4 py-2 border border-borderLight text-ink text-xs font-medium rounded hover:border-ink transition-colors">
+                    Скасувати
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 5. МОДАЛЬНЕ ВІКНО ПІДТВЕРДЖЕННЯ ТЕСТОВОГО ЗАМОВЛЕННЯ                  -->
+    <!-- ===================================================================== -->
+    <div id="order-success-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]">
+        <div class="bg-white border border-ink rounded max-w-md w-full p-6 shadow-2xl space-y-4 fade-in">
+            <div class="w-10 h-10 rounded-full bg-ink text-white flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+            </div>
+            <div>
+                <div class="text-[11px] font-mono uppercase text-neutral-400">OpenCart Order Created</div>
+                <h3 class="text-lg font-semibold text-ink mt-0.5">Тестове замовлення <span id="test-order-id" class="font-mono">#OC-9104</span> оформлено!</h3>
+            </div>
+            <div id="test-order-summary" class="border-t border-b border-borderLight py-3 space-y-1.5 text-xs text-neutral-600"></div>
+            <div class="flex justify-end">
+                <button type="button" onclick="document.getElementById('order-success-modal').classList.add('hidden')" class="px-4 py-2 bg-ink text-white text-xs font-medium rounded">
+                    Повернутися до конфігуратора
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Контейнер сповіщень (Toast) -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ==================== JAVASCRIPT КОНФІГУРАТОРА ТА LIVE SYNC ==================== -->
+    <script>
+        // 6 готових візуальних дизайн-тем
+        const DESIGN_THEMES = [
+            {
+                id: 'swiss_thin',
+                name: 'Swiss Thin (1px)',
+                desc: 'Чистий білий, лінії 1px, радіус 2px',
+                accent: '#111111',
+                bg: '#FFFFFF',
+                cardBg: '#FAFAFA',
+                radius: 2,
+                borderWidth: '1px',
+                fontFamily: 'inter',
+                inputStyle: 'outlined',
+                sectionStyle: 'dividers',
+                btnShape: 'standard',
+                btnWeight: '500',
+                density: 'standard'
+            },
+            {
+                id: 'brutalist_0px',
+                name: 'Brutalist 0px',
+                desc: 'Гострі кути 0px, рамки 2px, Mono',
+                accent: '#000000',
+                bg: '#FFFFFF',
+                cardBg: '#F5F5F5',
+                radius: 0,
+                borderWidth: '2px',
+                fontFamily: 'mono',
+                inputStyle: 'outlined',
+                sectionStyle: 'bordered',
+                btnShape: 'sharp',
+                btnWeight: '700',
+                density: 'compact'
+            },
+            {
+                id: 'editorial_soft',
+                name: 'Editorial Soft',
+                desc: 'Папір #FAF8F5, радіус 12px, Serif',
+                accent: '#1C1917',
+                bg: '#FAF8F5',
+                cardBg: '#F3EFEA',
+                radius: 12,
+                borderWidth: '1px',
+                fontFamily: 'serif',
+                inputStyle: 'outlined',
+                sectionStyle: 'bordered',
+                btnShape: 'pill',
+                btnWeight: '500',
+                density: 'spacious'
+            },
+            {
+                id: 'warm_sand',
+                name: 'Warm Sand',
+                desc: 'Пісочний #F6F4F0, акцент #2C2A29',
+                accent: '#2C2A29',
+                bg: '#F6F4F0',
+                cardBg: '#ECE8E1',
+                radius: 6,
+                borderWidth: '1px',
+                fontFamily: 'inter',
+                inputStyle: 'filled',
+                sectionStyle: 'dividers',
+                btnShape: 'standard',
+                btnWeight: '600',
+                density: 'standard'
+            },
+            {
+                id: 'nordic_graphite',
+                name: 'Nordic Graphite',
+                desc: 'Скандинавський #F4F6F8, сталь #1E293B',
+                accent: '#1E293B',
+                bg: '#F4F6F8',
+                cardBg: '#FFFFFF',
+                radius: 8,
+                borderWidth: '1px',
+                fontFamily: 'inter',
+                inputStyle: 'outlined',
+                sectionStyle: 'bordered',
+                btnShape: 'standard',
+                btnWeight: '600',
+                density: 'standard'
+            },
+            {
+                id: 'high_contrast',
+                name: 'High-Contrast A11y',
+                desc: 'Максимальний контраст, рамки 2px',
+                accent: '#000000',
+                bg: '#FFFFFF',
+                cardBg: '#FFFFFF',
+                radius: 4,
+                borderWidth: '2px',
+                fontFamily: 'inter',
+                inputStyle: 'outlined',
+                sectionStyle: 'bordered',
+                btnShape: 'standard',
+                btnWeight: '700',
+                density: 'spacious'
+            }
+        ];
+
+        // Коди українських мобільних операторів
+        const UA_OPERATOR_CODES = ['039', '050', '063', '066', '067', '068', '073', '075', '077', '089', '091', '092', '093', '094', '095', '096', '097', '098', '099'];
+
+        const getDefaultConfig = () => ({
+            enabled: true,
+            desktopLayout: '62-38', // '62-38' | '50-50' | 'single'
+            mobilePattern: 'accordion_sticky', // 'accordion_sticky' | 'compact_top' | 'sticky_only'
+            shippingMethodFirst: true,
+            showCustomerTabs: true,
+            showPromo: true,
+            showFreeShippingBar: true,
+            showReserveTimer: false,
+            showGiftWrap: true,
+            showNoCall: true,
+            requirePrivacyPolicy: true,
+            showCityChips: true,
+            quickCities: ['Київ', 'Львів', 'Одеса', 'Дніпро', 'Харків'],
+            theme: {
+                presetId: 'swiss_thin',
+                presetName: 'Swiss Thin (1px)',
+                accent: '#111111',
+                bg: '#FFFFFF',
+                cardBg: '#FAFAFA',
+                radius: 2,
+                borderWidth: '1px',
+                fontFamily: 'inter',
+                inputStyle: 'outlined',
+                sectionStyle: 'dividers',
+                btnShape: 'standard',
+                btnWeight: '500',
+                density: 'standard',
+                customCss: ''
+            },
+            fields: [
+                { id: 'firstname', label: "Ім'я", placeholder: 'Олександр', type: 'text', enabled: true, required: true, width: 'half', custom: false },
+                { id: 'lastname', label: 'Прізвище', placeholder: 'Мельник', type: 'text', enabled: true, required: true, width: 'half', custom: false },
+                { id: 'telephone', label: 'Телефон', placeholder: '+38 (0__) ___-__-__', type: 'tel', enabled: true, required: true, width: 'half', custom: false },
+                { id: 'email', label: 'E-mail', placeholder: 'o.melnyk@ukr.net', type: 'email', enabled: true, required: true, width: 'half', custom: false },
+                { id: 'messenger', label: 'Telegram / Viber', placeholder: '@username або номер', type: 'text', enabled: false, required: false, width: 'full', custom: true }
+            ],
+            shippingMethods: [
+                {
+                    id: 'np_warehouse',
+                    title: 'Нова Пошта (відділення / поштомат)',
+                    subtitle: '1–2 дні по Україні • Понад 27 000 точок видачі',
+                    cost: 80,
+                    freeFrom: 2500,
+                    enabled: true,
+                    addressType: 'branch'
+                },
+                {
+                    id: 'np_courier',
+                    title: "Нова Пошта (кур'єр)",
+                    subtitle: 'Доставка до дверей кур’єром по Україні',
+                    cost: 120,
+                    freeFrom: 4000,
+                    enabled: true,
+                    addressType: 'courier'
+                },
+                {
+                    id: 'ukrposhta',
+                    title: 'Укрпошта Експрес',
+                    subtitle: '2–4 робочі дні у відділення за індексом',
+                    cost: 55,
+                    freeFrom: 2000,
+                    enabled: true,
+                    addressType: 'postcode'
+                },
+                {
+                    id: 'showroom',
+                    title: 'Самовивіз із шоуруму (Київ)',
+                    subtitle: 'вул. Велика Васильківська, 72 • Примірка сьогодні',
+                    cost: 0,
+                    freeFrom: 0,
+                    enabled: true,
+                    addressType: 'pickup'
+                }
+            ],
+            paymentMethods: [
+                { id: 'online_card', title: 'Monobank / Apple Pay / Google Pay', desc: 'Миттєва онлайн-оплата карткою без комісії', enabled: true },
+                { id: 'cod', title: 'Оплата при отриманні (Післяплата)', desc: 'Оплата після огляду посилки (комісія 20 ₴ + 2%)', enabled: true },
+                { id: 'invoice', title: 'Безготівковий рахунок (ФОП / ТОВ з ЄДРПОУ)', desc: 'Рахунок-фактура IBAN для бізнесу', enabled: true },
+                { id: 'cash_pickup', title: 'Готівкою при самовивозі', desc: 'Оплата на касі шоуруму в Києві', enabled: true }
+            ],
+            matrix: {
+                np_warehouse: { online_card: true, cod: true, invoice: true, cash_pickup: false },
+                np_courier:   { online_card: true, cod: true, invoice: true, cash_pickup: false },
+                ukrposhta:    { online_card: true, cod: false, invoice: true, cash_pickup: false },
+                showroom:     { online_card: true, cod: false, invoice: true, cash_pickup: true }
+            },
+            integrations: {
+                npApiKey: 'np_live_98a4f21c8e7b304d91a2',
+                npLiveSearch: true,
+                validateUaOperator: true,
+                gatewayMonobank: true,
+                gatewayWayForPay: true,
+                prroCheckbox: true,
+                analyticsGA4: true,
+                analyticsMetaPixel: true
+            }
+        });
+
+        let config = getDefaultConfig();
+        if (window.KONTUR_SAVED_CONFIG && typeof window.KONTUR_SAVED_CONFIG === 'object') {
+            var savedCfg = window.KONTUR_SAVED_CONFIG;
+            var baseCfg = getDefaultConfig();
+            config = Object.assign(baseCfg, savedCfg);
+            config.theme = Object.assign(baseCfg.theme, savedCfg.theme || {});
+            config.integrations = Object.assign(baseCfg.integrations, savedCfg.integrations || {});
+            if (!savedCfg.fields) config.fields = baseCfg.fields;
+            if (!savedCfg.shippingMethods) config.shippingMethods = baseCfg.shippingMethods;
+            if (!savedCfg.paymentMethods) config.paymentMethods = baseCfg.paymentMethods;
+            if (!savedCfg.matrix) config.matrix = baseCfg.matrix;
+            if (!savedCfg.quickCities) config.quickCities = baseCfg.quickCities;
+        }
+
+        // Інтерактивний стан вітрини у Live Preview
+        let previewState = {
+            device: 'desktop',
+            selectedShipping: 'np_warehouse',
+            selectedPayment: 'online_card',
+            city: 'Київ',
+            branchSearch: '',
+            phoneValue: '',
+            phoneOperatorHint: '',
+            phoneInvalid: false,
+            promoCode: null,
+            giftWrapChecked: false,
+            privacyChecked: true,
+            mobileAccordionOpen: false,
+            timerSeconds: 14 * 60 + 52,
+            cart: [
+                { id: 1, name: 'Куртка-сорочка з вовни Merino', meta: 'Розмір: L • Графіт', price: 2150, qty: 1, img: 'https://placehold.co/100x120/F4F4F4/111111?text=COAT' },
+                { id: 2, name: 'Бавовняні шкарпетки (3 пари)', meta: '41–44 • Чорний', price: 450, qty: 1, img: 'https://placehold.co/100x120/F4F4F4/111111?text=SOCKS' }
+            ]
+        };
+
+        // Таймер резерву кошика (15:00)
+        setInterval(() => {
+            if (config.showReserveTimer && previewState.timerSeconds > 0) {
+                previewState.timerSeconds--;
+                const timerEl = document.getElementById('live-reserve-timer-clock');
+                if (timerEl) {
+                    const m = String(Math.floor(previewState.timerSeconds / 60)).padStart(2, '0');
+                    const s = String(previewState.timerSeconds % 60).padStart(2, '0');
+                    timerEl.textContent = `${m}:${s}`;
+                }
+            }
+        }, 1000);
+
+        // =========================================================================
+        // 1. РЕНДЕР ЕЛЕМЕНТІВ АДМІН-ПАНЕЛІ
+        // =========================================================================
+        function renderAdminFieldsList() {
+            const container = document.getElementById('admin-fields-list');
+            container.innerHTML = config.fields.map((field, index) => `
+                <div class="border ${field.enabled ? 'border-borderLight bg-white' : 'border-borderLight bg-surface opacity-70'} rounded p-3 space-y-2.5 transition-all">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <input type="checkbox" ${field.enabled ? 'checked' : ''} onchange="toggleFieldProp(${index}, 'enabled', this.checked)" class="store-checkbox">
+                            <span class="text-xs font-semibold text-ink truncate">${field.label}</span>
+                            <span class="text-[10px] font-mono text-neutral-400">${field.id}</span>
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="moveField(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 border border-borderLight rounded text-xs text-neutral-600 hover:border-ink disabled:opacity-30" title="Вгору">↑</button>
+                            <button type="button" onclick="moveField(${index}, 1)" ${index === config.fields.length - 1 ? 'disabled' : ''} class="w-6 h-6 border border-borderLight rounded text-xs text-neutral-600 hover:border-ink disabled:opacity-30" title="Вниз">↓</button>
+                            ${field.custom ? `<button type="button" onclick="deleteCustomField(${index})" class="w-6 h-6 border border-borderLight rounded text-xs text-red-600 hover:border-red-600 ml-1" title="Видалити">×</button>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-neutral-400 mb-0.5">Назва поля</label>
+                            <input type="text" value="${field.label}" oninput="updateFieldProp(${index}, 'label', this.value)" class="w-full px-2 py-1 text-xs border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-neutral-400 mb-0.5">Placeholder</label>
+                            <input type="text" value="${field.placeholder}" oninput="updateFieldProp(${index}, 'placeholder', this.value)" class="w-full px-2 py-1 text-xs border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1 text-[11px]">
+                        <div class="flex items-center gap-2">
+                            <select onchange="toggleFieldProp(${index}, 'type', this.value)" class="px-1.5 py-0.5 text-[10px] font-mono border border-borderLight rounded bg-surface text-ink outline-none">
+                                <option value="text" ${field.type === 'text' ? 'selected' : ''}>text</option>
+                                <option value="tel" ${field.type === 'tel' ? 'selected' : ''}>tel</option>
+                                <option value="email" ${field.type === 'email' ? 'selected' : ''}>email</option>
+                                <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>textarea</option>
+                            </select>
+
+                            <label class="inline-flex items-center gap-1 cursor-pointer select-none text-neutral-600">
+                                <input type="checkbox" ${field.required ? 'checked' : ''} onchange="toggleFieldProp(${index}, 'required', this.checked)" class="accent-ink">
+                                <span>Обов'язкове (*)</span>
+                            </label>
+                        </div>
+
+                        <div class="inline-flex border border-borderLight rounded overflow-hidden">
+                            <button type="button" onclick="toggleFieldProp(${index}, 'width', 'half')" class="px-2 py-0.5 text-[10px] font-mono ${field.width === 'half' ? 'bg-ink text-white' : 'bg-white text-neutral-600'}">50%</button>
+                            <button type="button" onclick="toggleFieldProp(${index}, 'width', 'full')" class="px-2 py-0.5 text-[10px] font-mono ${field.width === 'full' ? 'bg-ink text-white' : 'bg-white text-neutral-600'}">100%</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminCityChips() {
+            const container = document.getElementById('admin-city-chips-list');
+            container.innerHTML = config.quickCities.map((city, idx) => `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-borderLight rounded text-[11px] text-ink">
+                    <span>${city}</span>
+                    <button type="button" onclick="removeCityChip(${idx})" class="text-neutral-400 hover:text-red-600 leading-none">×</button>
+                </span>
+            `).join('');
+        }
+
+        function renderAdminShippingList() {
+            const container = document.getElementById('admin-shipping-list');
+            container.innerHTML = config.shippingMethods.map((method, idx) => `
+                <div class="border border-borderLight rounded p-3.5 space-y-3 ${method.enabled ? 'bg-white' : 'bg-surface opacity-70'}">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <input type="checkbox" ${method.enabled ? 'checked' : ''} onchange="updateShippingMethod(${idx}, 'enabled', this.checked)" class="store-checkbox">
+                            <span class="text-xs font-semibold text-ink truncate">${method.title}</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-neutral-400 shrink-0">${method.id}</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-neutral-400 mb-0.5">Назва служби на вітрині</label>
+                        <input type="text" value="${method.title}" oninput="updateShippingMethod(${idx}, 'title', this.value)" class="w-full px-2.5 py-1.5 text-xs border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[10px] text-neutral-400 mb-0.5">Базова вартість (₴)</label>
+                            <input type="number" min="0" value="${method.cost}" oninput="updateShippingMethod(${idx}, 'cost', Number(this.value))" class="w-full px-2.5 py-1.5 text-xs font-mono border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-neutral-400 mb-0.5">Безкоштовно від (₴)</label>
+                            <input type="number" min="0" step="100" value="${method.freeFrom}" oninput="updateShippingMethod(${idx}, 'freeFrom', Number(this.value))" class="w-full px-2.5 py-1.5 text-xs font-mono border border-borderLight rounded bg-surface focus:bg-white focus:border-ink outline-none">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminPaymentAndMatrix() {
+            const payList = document.getElementById('admin-payment-list');
+            payList.innerHTML = config.paymentMethods.map((pm, idx) => `
+                <div class="border border-borderLight rounded p-3 flex items-center justify-between gap-3 ${pm.enabled ? 'bg-white' : 'bg-surface opacity-70'}">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <input type="checkbox" ${pm.enabled ? 'checked' : ''} onchange="updatePaymentMethod(${idx}, 'enabled', this.checked)" class="store-checkbox">
+                        <div class="min-w-0">
+                            <div class="text-xs font-medium text-ink truncate">${pm.title}</div>
+                            <div class="text-[11px] text-neutral-400 truncate">${pm.desc}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const matrixBody = document.getElementById('dependency-matrix-body');
+            const payIds = ['online_card', 'cod', 'invoice', 'cash_pickup'];
+
+            matrixBody.innerHTML = config.shippingMethods.map(ship => `
+                <tr>
+                    <td class="p-2.5 font-medium text-ink max-w-[165px] truncate" title="${ship.title}">${ship.title}</td>
+                    ${payIds.map(pid => `
+                        <td class="p-2 text-center">
+                            <input type="checkbox" ${config.matrix[ship.id] && config.matrix[ship.id][pid] ? 'checked' : ''} onchange="toggleMatrixCell('${ship.id}', '${pid}', this.checked)" class="accent-ink w-4 h-4 cursor-pointer">
+                        </td>
+                    `).join('')}
+                </tr>
+            `).join('');
+        }
+
+        function renderDesignThemesGrid() {
+            const grid = document.getElementById('design-themes-grid');
+            grid.innerHTML = DESIGN_THEMES.map(theme => {
+                const isActive = config.theme.presetId === theme.id;
+                return `
+                    <button type="button" onclick="applyDesignTheme('${theme.id}')" class="p-2.5 border ${isActive ? 'border-ink bg-surface' : 'border-borderLight bg-white hover:border-ink'} rounded text-left transition-all space-y-1.5">
+                        <div class="flex items-center justify-between gap-1.5">
+                            <span class="text-xs font-semibold text-ink truncate">${theme.name}</span>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <span class="w-3.5 h-3.5 rounded-full border border-neutral-300" style="background:${theme.bg}"></span>
+                                <span class="w-3.5 h-3.5 rounded-full" style="background:${theme.accent}"></span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-neutral-500 leading-snug">${theme.desc}</div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // 2. ОБРОБНИКИ ЗМІН У КОНФІГУРАТОРІ ТА ДИЗАЙН-ТОКЕНАХ
+        // =========================================================================
+        function toggleFieldProp(idx, prop, val) {
+            config.fields[idx][prop] = val;
+            renderAdminFieldsList();
+            renderLiveStorefront();
+        }
+
+        function updateFieldProp(idx, prop, val) {
+            config.fields[idx][prop] = val;
+            renderLiveStorefront();
+        }
+
+        function moveField(idx, dir) {
+            const targetIdx = idx + dir;
+            if (targetIdx < 0 || targetIdx >= config.fields.length) return;
+            const temp = config.fields[idx];
+            config.fields[idx] = config.fields[targetIdx];
+            config.fields[targetIdx] = temp;
+            renderAdminFieldsList();
+            renderLiveStorefront();
+        }
+
+        function openAddCustomFieldForm() {
+            document.getElementById('add-custom-field-box').classList.remove('hidden');
+        }
+        function closeAddCustomFieldForm() {
+            document.getElementById('add-custom-field-box').classList.add('hidden');
+        }
+
+        function confirmAddCustomField() {
+            const label = document.getElementById('new-field-label').value.trim();
+            const placeholder = document.getElementById('new-field-placeholder').value.trim();
+            const type = document.getElementById('new-field-type').value;
+            const width = document.getElementById('new-field-width').value;
+
+            if (!label) {
+                showToast('Вкажіть назву кастомного поля');
+                return;
+            }
+
+            config.fields.push({
+                id: 'custom_' + Date.now().toString().slice(-4),
+                label,
+                placeholder: placeholder || 'Введіть значення...',
+                type,
+                enabled: true,
+                required: false,
+                width,
+                custom: true
+            });
+
+            document.getElementById('new-field-label').value = '';
+            document.getElementById('new-field-placeholder').value = '';
+            closeAddCustomFieldForm();
+            renderAdminFieldsList();
+            renderLiveStorefront();
+            showToast(`Поле «${label}» додано`);
+        }
+
+        function deleteCustomField(idx) {
+            config.fields.splice(idx, 1);
+            renderAdminFieldsList();
+            renderLiveStorefront();
+        }
+
+        function addCityChip() {
+            const input = document.getElementById('new-city-chip-input');
+            const val = input.value.trim();
+            if (!val) return;
+            if (!config.quickCities.includes(val)) {
+                config.quickCities.push(val);
+                renderAdminCityChips();
+                renderLiveStorefront();
+            }
+            input.value = '';
+        }
+
+        function removeCityChip(idx) {
+            config.quickCities.splice(idx, 1);
+            renderAdminCityChips();
+            renderLiveStorefront();
+        }
+
+        function updateShippingMethod(idx, prop, val) {
+            config.shippingMethods[idx][prop] = val;
+            if (prop === 'enabled') {
+                const activeShip = config.shippingMethods.find(s => s.enabled);
+                if (activeShip && !config.shippingMethods.find(s => s.id === previewState.selectedShipping)?.enabled) {
+                    previewState.selectedShipping = activeShip.id;
+                }
+                renderAdminShippingList();
+            }
+            renderLiveStorefront();
+        }
+
+        function updatePaymentMethod(idx, prop, val) {
+            config.paymentMethods[idx][prop] = val;
+            renderAdminPaymentAndMatrix();
+            renderLiveStorefront();
+        }
+
+        function toggleMatrixCell(shipId, payId, checked) {
+            if (!config.matrix[shipId]) config.matrix[shipId] = {};
+            config.matrix[shipId][payId] = checked;
+            renderLiveStorefront();
+        }
+
+        function toggleBooleanConfig(key, switchId) {
+            config[key] = !config[key];
+            const sw = document.getElementById(switchId);
+            if (sw) sw.classList.toggle('on', config[key]);
+            renderLiveStorefront();
+        }
+
+        function toggleIntegrationFlag(key, switchId) {
+            config.integrations[key] = !config.integrations[key];
+            const sw = document.getElementById(switchId);
+            if (sw) sw.classList.toggle('on', config.integrations[key]);
+            renderLiveStorefront();
+            showToast(`Налаштування інтеграції оновлено`);
+        }
+
+        function setDesktopLayout(layout) {
+            config.desktopLayout = layout;
+            document.querySelectorAll('.layout-opt-btn').forEach(btn => {
+                const active = btn.dataset.layout === layout;
+                btn.className = active
+                    ? 'layout-opt-btn p-2.5 border border-ink bg-surface rounded text-left'
+                    : 'layout-opt-btn p-2.5 border border-borderLight bg-white rounded text-left hover:border-ink';
+            });
+            renderLiveStorefront();
+        }
+
+        function setMobilePattern(pattern) {
+            config.mobilePattern = pattern;
+            renderLiveStorefront();
+        }
+
+        // Застосування готової дизайн-теми
+        function applyDesignTheme(themeId) {
+            const theme = DESIGN_THEMES.find(t => t.id === themeId);
+            if (!theme) return;
+
+            config.theme.presetId = theme.id;
+            config.theme.presetName = theme.name;
+            setAccentColor(theme.accent, false);
+            setSurfaceColors(theme.bg, theme.cardBg, false);
+            setBorderRadius(theme.radius, false);
+            setBorderWidth(theme.borderWidth, false);
+            setFontFamily(theme.fontFamily, false);
+            setInputStyle(theme.inputStyle, false);
+            setSectionStyle(theme.sectionStyle, false);
+            setButtonShape(theme.btnShape, false);
+            setButtonWeight(theme.btnWeight, false);
+            setUiDensity(theme.density, false);
+
+            syncThemeControlsUi();
+            renderLiveStorefront();
+            showToast(`Тема «${theme.name}» застосована`);
+        }
+
+        function setAccentColor(hex, clearPreset = true) {
+            config.theme.accent = hex;
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.documentElement.style.setProperty('--oc-accent', hex);
+            document.getElementById('cfg-accent-picker').value = hex;
+            document.getElementById('cfg-accent-hex').value = hex.toUpperCase();
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setSurfaceColors(bgHex, cardHex, clearPreset = true) {
+            config.theme.bg = bgHex;
+            config.theme.cardBg = cardHex;
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.documentElement.style.setProperty('--oc-bg', bgHex);
+            document.documentElement.style.setProperty('--oc-card-bg', cardHex);
+            document.getElementById('cfg-bg-picker').value = bgHex;
+            document.getElementById('cfg-bg-label').textContent = bgHex.toUpperCase();
+            document.getElementById('cfg-card-picker').value = cardHex;
+            document.getElementById('cfg-card-label').textContent = cardHex.toUpperCase();
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setBorderRadius(px, clearPreset = true) {
+            config.theme.radius = Number(px);
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.documentElement.style.setProperty('--oc-radius', px + 'px');
+            document.getElementById('cfg-radius-val').textContent = px + 'px';
+            document.getElementById('cfg-radius-slider').value = px;
+            setButtonShape(config.theme.btnShape, false);
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setBorderWidth(bw, clearPreset = true) {
+            config.theme.borderWidth = bw;
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.documentElement.style.setProperty('--oc-border-w', bw);
+            document.querySelectorAll('.bw-btn').forEach(btn => {
+                const active = btn.dataset.bw === bw;
+                btn.className = active
+                    ? 'bw-btn py-1.5 text-xs font-mono border border-ink bg-ink text-white rounded'
+                    : 'bw-btn py-1.5 text-xs font-mono border border-borderLight bg-white text-ink hover:border-ink rounded';
+            });
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setFontFamily(fontKey, clearPreset = true) {
+            config.theme.fontFamily = fontKey;
+            if (clearPreset) config.theme.presetId = 'custom';
+            const bodyMap = {
+                inter: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                mono: "'JetBrains Mono', monospace",
+                serif: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+            };
+            const headMap = {
+                inter: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                mono: "'JetBrains Mono', monospace",
+                serif: "'Playfair Display', Georgia, serif"
+            };
+            document.documentElement.style.setProperty('--oc-font-body', bodyMap[fontKey]);
+            document.documentElement.style.setProperty('--oc-font-heading', headMap[fontKey]);
+            document.getElementById('cfg-font-family').value = fontKey;
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setInputStyle(styleKey, clearPreset = true) {
+            config.theme.inputStyle = styleKey;
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.querySelectorAll('.istyle-btn').forEach(btn => {
+                const active = btn.dataset.istyle === styleKey;
+                btn.className = active
+                    ? 'istyle-btn py-2 px-2 text-[11px] border border-ink bg-ink text-white rounded'
+                    : 'istyle-btn py-2 px-2 text-[11px] border border-borderLight bg-white text-ink hover:border-ink rounded';
+            });
+            renderLiveStorefront();
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setSectionStyle(styleKey, clearPreset = true) {
+            config.theme.sectionStyle = styleKey;
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.querySelectorAll('.sstyle-btn').forEach(btn => {
+                const active = btn.dataset.sstyle === styleKey;
+                btn.className = active
+                    ? 'sstyle-btn py-2 px-2 text-[11px] border border-ink bg-ink text-white rounded'
+                    : 'sstyle-btn py-2 px-2 text-[11px] border border-borderLight bg-white text-ink hover:border-ink rounded';
+            });
+            renderLiveStorefront();
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setButtonShape(shapeKey, clearPreset = true) {
+            config.theme.btnShape = shapeKey;
+            if (clearPreset) config.theme.presetId = 'custom';
+            let r = config.theme.radius + 'px';
+            if (shapeKey === 'sharp') r = '0px';
+            if (shapeKey === 'pill') r = '9999px';
+            document.documentElement.style.setProperty('--oc-btn-radius', r);
+            document.getElementById('cfg-btn-shape').value = shapeKey;
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setButtonWeight(weight, clearPreset = true) {
+            config.theme.btnWeight = weight;
+            if (clearPreset) config.theme.presetId = 'custom';
+            document.documentElement.style.setProperty('--oc-btn-weight', weight);
+            document.getElementById('cfg-btn-weight').value = weight;
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function setUiDensity(densityKey, clearPreset = true) {
+            config.theme.density = densityKey;
+            if (clearPreset) config.theme.presetId = 'custom';
+            const heightMap = { compact: '38px', standard: '44px', spacious: '50px' };
+            document.documentElement.style.setProperty('--oc-input-height', heightMap[densityKey]);
+            document.getElementById('cfg-density').value = densityKey;
+            renderLiveStorefront();
+            if (clearPreset) renderDesignThemesGrid();
+        }
+
+        function applyCustomCss(cssText) {
+            config.theme.customCss = cssText;
+            document.getElementById('custom-module-css-tag').textContent = cssText;
+        }
+
+        function syncThemeControlsUi() {
+            renderDesignThemesGrid();
+            const badge = document.getElementById('active-theme-badge');
+            if (badge) {
+                const tName = DESIGN_THEMES.find(t => t.id === config.theme.presetId)?.name || 'Кастомна тема';
+                badge.textContent = `Тема: ${tName}`;
+            }
+        }
+
+        // =========================================================================
+        // 3. ПРЕСЕТИ КОНФІГУРАЦІЇ В ОДИН КЛІК
+        // =========================================================================
+        function applyPreset(presetName) {
+            config = getDefaultConfig();
+
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                const active = btn.dataset.preset === presetName;
+                btn.className = active
+                    ? 'preset-btn px-2.5 py-1 text-[11px] border border-ink rounded bg-ink text-white transition-colors'
+                    : 'preset-btn px-2.5 py-1 text-[11px] border border-borderLight hover:border-ink rounded bg-white text-ink transition-colors';
+            });
+
+            if (presetName === 'minimal') {
+                config.fields.forEach(f => {
+                    if (f.id === 'lastname' || f.id === 'email' || f.id === 'messenger') f.enabled = false;
+                    if (f.id === 'firstname' || f.id === 'telephone') f.width = 'half';
+                });
+                config.showCustomerTabs = false;
+                config.showPromo = false;
+                config.showGiftWrap = false;
+                showToast('Пресет «Мінімалізм (швидкий чекаут)»');
+            } else if (presetName === 'b2b') {
+                config.fields.push({
+                    id: 'company_edrpou',
+                    label: 'Компанія та код ЄДРПОУ',
+                    placeholder: 'ТОВ «Контур» / 12345678',
+                    type: 'text',
+                    enabled: true,
+                    required: true,
+                    width: 'full',
+                    custom: true
+                });
+                config.fields.find(f => f.id === 'messenger').enabled = true;
+                previewState.selectedPayment = 'invoice';
+                showToast('Пресет «B2B / Оптова торгівля»');
+            } else {
+                showToast('Пресет «Повний стандарт»');
+            }
+
+            syncAllAdminUi();
+            renderLiveStorefront();
+        }
+
+        function syncAllAdminUi() {
+            renderAdminFieldsList();
+            renderAdminCityChips();
+            renderAdminShippingList();
+            renderAdminPaymentAndMatrix();
+            setDesktopLayout(config.desktopLayout);
+            document.getElementById('cfg-mobile-pattern').value = config.mobilePattern;
+
+            setAccentColor(config.theme.accent, false);
+            setSurfaceColors(config.theme.bg, config.theme.cardBg, false);
+            setBorderRadius(config.theme.radius, false);
+            setBorderWidth(config.theme.borderWidth, false);
+            setFontFamily(config.theme.fontFamily, false);
+            setInputStyle(config.theme.inputStyle, false);
+            setSectionStyle(config.theme.sectionStyle, false);
+            setButtonShape(config.theme.btnShape, false);
+            setButtonWeight(config.theme.btnWeight, false);
+            setUiDensity(config.theme.density, false);
+            document.getElementById('cfg-custom-css').value = config.theme.customCss;
+            applyCustomCss(config.theme.customCss);
+            syncThemeControlsUi();
+
+            const switchStates = {
+                'sw-shipping-first': config.shippingMethodFirst,
+                'sw-city-chips': config.showCityChips,
+                'sw-free-bar': config.showFreeShippingBar,
+                'sw-reserve-timer': config.showReserveTimer,
+                'sw-promo': config.showPromo,
+                'sw-gift-wrap': config.showGiftWrap,
+                'sw-nocall': config.showNoCall,
+                'sw-customer-tabs': config.showCustomerTabs,
+                'sw-privacy': config.requirePrivacyPolicy,
+                'sw-np-live-search': config.integrations.npLiveSearch,
+                'sw-ua-operator': config.integrations.validateUaOperator,
+                'sw-gw-mono': config.integrations.gatewayMonobank,
+                'sw-gw-wfp': config.integrations.gatewayWayForPay,
+                'sw-prro-checkbox': config.integrations.prroCheckbox,
+                'sw-ga4': config.integrations.analyticsGA4,
+                'sw-meta-pixel': config.integrations.analyticsMetaPixel
+            };
+
+            Object.entries(switchStates).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('on', Boolean(val));
+            });
+        }
+
+        // =========================================================================
+        // 4. ЖИВЕ ПРЕВ'Ю ВІТРИНИ OPENCART (LIVE STOREFRONT RENDERER)
+        // =========================================================================
+        function formatUAH(val) {
+            return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
+        }
+
+        function handlePreviewPhoneInput(rawVal) {
+            let digits = rawVal.replace(/\D/g, '');
+            if (digits.startsWith('80')) digits = '3' + digits;
+            else if (digits.startsWith('0')) digits = '38' + digits;
+            else if (digits.length > 0 && !digits.startsWith('380')) digits = '380' + digits;
+            digits = digits.substring(0, 12);
+
+            let formatted = '';
+            if (digits.length > 0) {
+                formatted = '+38';
+                if (digits.length > 2) formatted += ' (' + digits.substring(2, 5);
+                if (digits.length >= 5) formatted += ') ' + digits.substring(5, 8);
+                if (digits.length >= 8) formatted += '-' + digits.substring(8, 10);
+                if (digits.length >= 10) formatted += '-' + digits.substring(10, 12);
+            }
+
+            previewState.phoneValue = formatted;
+            const inputEl = document.getElementById('preview-field-telephone');
+            if (inputEl) inputEl.value = formatted;
+
+            const hintEl = document.getElementById('preview-phone-hint');
+            if (config.integrations.validateUaOperator && digits.length >= 5) {
+                const opCode = digits.substring(2, 5);
+                const isValidOp = UA_OPERATOR_CODES.includes(opCode);
+                previewState.phoneInvalid = !isValidOp;
+                if (inputEl) inputEl.classList.toggle('input-invalid', !isValidOp);
+                if (hintEl) {
+                    hintEl.textContent = isValidOp
+                        ? `✓ Код оператора України (${opCode}) підтверджено`
+                        : `⚠ Невідомий код оператора (${opCode}). Перевірте номер.`;
+                    hintEl.className = isValidOp ? 'text-[10px] text-emerald-700 mt-1' : 'text-[10px] text-red-600 mt-1';
+                }
+            } else {
+                previewState.phoneInvalid = false;
+                if (inputEl) inputEl.classList.remove('input-invalid');
+                if (hintEl) hintEl.textContent = '';
+            }
+        }
+
+        function renderLiveStorefront() {
+            const mount = document.getElementById('live-storefront-mount');
+            const isMobile = previewState.device === 'mobile';
+            syncThemeControlsUi();
+
+            if (!config.enabled) {
+                mount.innerHTML = `
+                    <div class="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-3 bg-white">
+                        <div class="px-3 py-1 bg-neutral-100 border border-borderLight rounded text-xs font-mono text-neutral-500">Status: Disabled</div>
+                        <h3 class="text-lg font-medium text-ink">Модуль KONTUR / OnePage Checkout вимкнено</h3>
+                        <p class="text-xs text-neutral-500 max-w-sm">На вітрині OpenCart активне стандартне багатокрокове оформлення замовлення.</p>
+                        <button type="button" onclick="toggleGlobalStatus()" class="px-4 py-2 bg-ink text-white text-xs font-medium rounded">Увімкнути модуль</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const inputStyleClass = `input-style-${config.theme.inputStyle}`;
+            const sectionStyleClass = `store-section-${config.theme.sectionStyle}`;
+            const spaceClass = config.theme.density === 'compact' ? 'space-y-4' : (config.theme.density === 'spacious' ? 'space-y-8' : 'space-y-6');
+
+            // Розрахунки кошика
+            const subtotal = previewState.cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+            const totalQty = previewState.cart.reduce((sum, item) => sum + item.qty, 0);
+            let discount = 0;
+            if (previewState.promoCode === 'SALE10') discount = Math.round(subtotal * 0.1);
+            if (previewState.promoCode === 'GIFT1000') discount = Math.min(subtotal, 1000);
+
+            const giftWrapCost = (config.showGiftWrap && previewState.giftWrapChecked) ? 95 : 0;
+            const afterDiscount = Math.max(0, subtotal - discount);
+
+            const enabledShippings = config.shippingMethods.filter(s => s.enabled);
+            let activeShip = enabledShippings.find(s => s.id === previewState.selectedShipping) || enabledShippings[0];
+            if (activeShip) previewState.selectedShipping = activeShip.id;
+
+            let shippingCost = 0;
+            if (activeShip) {
+                shippingCost = (activeShip.freeFrom > 0 && afterDiscount >= activeShip.freeFrom) ? 0 : activeShip.cost;
+            }
+            const total = afterDiscount + giftWrapCost + shippingCost;
+
+            // Доступні оплати за Матрицею залежностей
+            const allowedPayments = config.paymentMethods.filter(pm => {
+                if (!pm.enabled) return false;
+                if (!activeShip) return true;
+                return Boolean(config.matrix[activeShip.id]?.[pm.id]);
+            });
+
+            if (allowedPayments.length > 0 && !allowedPayments.some(p => p.id === previewState.selectedPayment)) {
+                previewState.selectedPayment = allowedPayments[0].id;
+            }
+
+            // Прогрес-бар безкоштовної доставки
+            let freeShipBarHtml = '';
+            if (config.showFreeShippingBar && activeShip && activeShip.freeFrom > 0) {
+                const pct = Math.min(100, Math.round((afterDiscount / activeShip.freeFrom) * 100));
+                const remain = Math.max(0, activeShip.freeFrom - afterDiscount);
+                freeShipBarHtml = `
+                    <div class="p-3 bg-white border border-borderLight rounded space-y-1.5 text-[11px]">
+                        <div class="flex justify-between text-neutral-600">
+                            <span>${remain === 0 ? '✓ Безкоштовна доставка активована!' : `До безкоштовної доставки: <strong class="text-ink font-mono">${formatUAH(remain)}</strong>`}</span>
+                            <span class="font-mono text-ink">${pct}%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                            <div class="h-full store-badge-accent transition-all duration-300" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Таймер резерву товарів (15:00)
+            const mStr = String(Math.floor(previewState.timerSeconds / 60)).padStart(2, '0');
+            const sStr = String(previewState.timerSeconds % 60).padStart(2, '0');
+            const timerHtml = config.showReserveTimer ? `
+                <div class="mb-4 px-3.5 py-2 border store-border-accent bg-white rounded flex items-center justify-between text-xs">
+                    <span class="text-neutral-600">Товари в кошику зарезервовано за вами:</span>
+                    <span id="live-reserve-timer-clock" class="font-mono font-semibold store-text-accent">${mStr}:${sStr}</span>
+                </div>
+            ` : '';
+
+            // Поля покупця з конструктора
+            const enabledFields = config.fields.filter(f => f.enabled);
+            const fieldsHtml = enabledFields.map(f => {
+                const colSpan = (!isMobile && f.width === 'half') ? 'col-span-1' : 'col-span-2';
+                const isPhone = f.id === 'telephone' || f.type === 'tel';
+
+                if (f.type === 'textarea') {
+                    return `
+                        <div class="${colSpan}">
+                            <label class="block text-xs font-medium text-neutral-700 mb-1">
+                                ${f.label} ${f.required ? '<span class="text-neutral-400">*</span>' : ''}
+                            </label>
+                            <textarea rows="2" placeholder="${f.placeholder}" class="store-input ${inputStyleClass} resize-none"></textarea>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="${colSpan}">
+                        <label class="block text-xs font-medium text-neutral-700 mb-1">
+                            ${f.label} ${f.required ? '<span class="text-neutral-400">*</span>' : ''}
+                        </label>
+                        <input
+                            type="${f.type}"
+                            ${isPhone ? `id="preview-field-telephone" value="${previewState.phoneValue}" oninput="handlePreviewPhoneInput(this.value)"` : ''}
+                            placeholder="${f.placeholder}"
+                            class="store-input ${inputStyleClass} ${isPhone ? 'font-mono' : ''} ${isPhone && previewState.phoneInvalid ? 'input-invalid' : ''}"
+                        >
+                        ${isPhone ? `<div id="preview-phone-hint" class="text-[10px] mt-1">${previewState.phoneOperatorHint}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Блок вибору служб доставки та контекстних полів адреси
+            const shippingCardsHtml = `
+                <div class="space-y-2">
+                    ${enabledShippings.map(ship => {
+                        const isSelected = activeShip && activeShip.id === ship.id;
+                        const isFree = ship.cost === 0 || (ship.freeFrom > 0 && afterDiscount >= ship.freeFrom);
+                        return `
+                            <div onclick="previewState.selectedShipping='${ship.id}'; renderLiveStorefront();" class="store-card ${isSelected ? 'active' : ''} p-3 flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="store-radio-dot"><div class="store-radio-dot-inner"></div></div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-medium text-ink truncate">${ship.title}</div>
+                                        <div class="text-[11px] text-neutral-400 truncate">${ship.subtitle}</div>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-mono font-medium text-ink shrink-0">${isFree ? 'Безкоштовно' : formatUAH(ship.cost)}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            let shippingAddressFieldsHtml = '';
+            if (activeShip) {
+                const cityBlock = activeShip.addressType !== 'pickup' ? `
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-neutral-700">Місто доставки <span class="text-neutral-400">*</span></label>
+                        <input type="text" value="${previewState.city}" oninput="previewState.city = this.value" class="store-input ${inputStyleClass}">
+                        ${config.showCityChips && config.quickCities.length ? `
+                            <div class="flex flex-wrap gap-1.5">
+                                ${config.quickCities.map(c => `
+                                    <button type="button" onclick="previewState.city='${c}'; renderLiveStorefront();" class="text-[11px] px-2.5 py-1 border ${previewState.city === c ? 'store-badge-accent store-border-accent' : 'border-borderLight bg-white text-neutral-700 hover:border-ink'} rounded transition-colors">${c}</button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : '';
+
+                if (activeShip.addressType === 'branch') {
+                    const branches = [
+                        `Відділення №15 (до 30 кг): м. ${previewState.city}, вул. Велика Васильківська, 63`,
+                        `Відділення №42: м. ${previewState.city}, вул. Хрещатик, 22`,
+                        `Поштомат №5421: м. ${previewState.city}, вул. Саксаганського, 44`,
+                        `Поштомат №7810: м. ${previewState.city}, просп. Берестейський, 24`
+                    ];
+                    const filtered = previewState.branchSearch
+                        ? branches.filter(b => b.toLowerCase().includes(previewState.branchSearch.toLowerCase()))
+                        : branches;
+
+                    shippingAddressFieldsHtml = `
+                        ${cityBlock}
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-medium text-neutral-700">Відділення або поштомат <span class="text-neutral-400">*</span></label>
+                                ${config.integrations.npLiveSearch ? `<span class="text-[10px] font-mono text-emerald-700">API НП Live</span>` : ''}
+                            </div>
+                            ${config.integrations.npLiveSearch ? `
+                                <input type="text" value="${previewState.branchSearch}" oninput="previewState.branchSearch = this.value; renderLiveStorefront();" placeholder="Пошук за номером відділення або вулицею..." class="store-input ${inputStyleClass} text-xs">
+                            ` : ''}
+                            <select class="store-input ${inputStyleClass} bg-white">
+                                ${filtered.length ? filtered.map(b => `<option>${b}</option>`).join('') : `<option>Не знайдено за запитом «${previewState.branchSearch}»</option>`}
+                            </select>
+                        </div>
+                    `;
+                } else if (activeShip.addressType === 'courier') {
+                    shippingAddressFieldsHtml = `
+                        ${cityBlock}
+                        <div class="grid ${isMobile ? 'grid-cols-1' : 'grid-cols-12'} gap-2.5">
+                            <div class="${isMobile ? '' : 'col-span-8'}">
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Вулиця <span class="text-neutral-400">*</span></label>
+                                <input type="text" placeholder="вул. Саксаганського" class="store-input ${inputStyleClass}">
+                            </div>
+                            <div class="${isMobile ? '' : 'col-span-4'}">
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Будинок / кв. <span class="text-neutral-400">*</span></label>
+                                <input type="text" placeholder="24А, кв. 12" class="store-input ${inputStyleClass}">
+                            </div>
+                        </div>
+                    `;
+                } else if (activeShip.addressType === 'postcode') {
+                    shippingAddressFieldsHtml = `
+                        ${cityBlock}
+                        <div class="grid ${isMobile ? 'grid-cols-1' : 'grid-cols-12'} gap-2.5">
+                            <div class="${isMobile ? '' : 'col-span-4'}">
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Індекс <span class="text-neutral-400">*</span></label>
+                                <input type="text" placeholder="01001" class="store-input ${inputStyleClass} font-mono">
+                            </div>
+                            <div class="${isMobile ? '' : 'col-span-8'}">
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Відділення Укрпошти <span class="text-neutral-400">*</span></label>
+                                <input type="text" placeholder="Відділення №1, центральне" class="store-input ${inputStyleClass}">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    shippingAddressFieldsHtml = `
+                        <div class="p-3 bg-white border border-borderLight rounded text-xs text-neutral-600 space-y-1">
+                            <div class="font-medium text-ink">Шоурум KONTUR / STORE — м. Київ</div>
+                            <div>вул. Велика Васильківська, 72 • Щодня 10:00–20:00</div>
+                        </div>
+                    `;
+                }
+            }
+
+            const shippingBlockInner = config.shippingMethodFirst
+                ? `${shippingCardsHtml}<div class="store-surface-card p-3.5 space-y-3 mt-3">${shippingAddressFieldsHtml}</div>`
+                : `<div class="store-surface-card p-3.5 space-y-3 mb-3">${shippingAddressFieldsHtml}</div>${shippingCardsHtml}`;
+
+            // Блок товарів та підсумків кошика
+            const cartItemsHtml = previewState.cart.map(item => `
+                <div class="py-3 first:pt-0 last:pb-0 flex gap-3 items-start">
+                    <img src="${item.img}" alt="" class="w-12 h-14 object-cover rounded border border-borderLight bg-white shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-medium text-ink leading-snug">${item.name}</div>
+                        <div class="text-[11px] text-neutral-400 mt-0.5">${item.meta}</div>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="inline-flex items-center border border-borderLight rounded bg-white">
+                                <button type="button" onclick="changePreviewQty(${item.id}, -1)" class="w-6 h-6 text-xs text-neutral-500 hover:text-ink">−</button>
+                                <span class="w-6 text-center text-[11px] font-mono">${item.qty}</span>
+                                <button type="button" onclick="changePreviewQty(${item.id}, 1)" class="w-6 h-6 text-xs text-neutral-500 hover:text-ink">+</button>
+                            </div>
+                            <span class="text-xs font-mono font-medium text-ink">${formatUAH(item.price * item.qty)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const summaryBlockHtml = `
+                <div class="space-y-4">
+                    <div class="divide-y divide-borderLight">${cartItemsHtml}</div>
+
+                    ${freeShipBarHtml}
+
+                    ${config.showGiftWrap ? `
+                        <label class="flex items-center justify-between gap-2 p-2.5 bg-white border border-borderLight rounded cursor-pointer text-xs">
+                            <span class="flex items-center gap-2 text-ink">
+                                <input type="checkbox" ${previewState.giftWrapChecked ? 'checked' : ''} onchange="previewState.giftWrapChecked = this.checked; renderLiveStorefront();" class="store-checkbox">
+                                <span>Подарункове пакування</span>
+                            </span>
+                            <span class="font-mono text-neutral-600">+ 95 ₴</span>
+                        </label>
+                    ` : ''}
+
+                    ${config.showPromo ? `
+                        <div class="pt-3 border-t border-borderLight space-y-1.5">
+                            <div class="flex gap-2">
+                                <input type="text" id="preview-coupon-input" value="${previewState.promoCode || ''}" placeholder="Промокод (SALE10 / GIFT1000)" class="store-input ${inputStyleClass} uppercase font-mono text-xs py-1.5">
+                                <button type="button" onclick="applyPreviewPromo()" class="px-3 py-1.5 border store-border-accent text-xs font-medium rounded bg-white hover:bg-surface shrink-0">ОК</button>
+                            </div>
+                            ${previewState.promoCode
+                                ? `<div class="flex items-center justify-between text-[11px] store-text-accent font-medium"><span>✓ Код ${previewState.promoCode} активовано</span><button type="button" onclick="previewState.promoCode=null; renderLiveStorefront();" class="underline text-neutral-400">Зняти</button></div>`
+                                : `<div class="text-[10px] text-neutral-400">Тестові коди: <button type="button" onclick="previewState.promoCode='SALE10'; renderLiveStorefront();" class="font-mono text-ink underline">SALE10</button> або <button type="button" onclick="previewState.promoCode='GIFT1000'; renderLiveStorefront();" class="font-mono text-ink underline">GIFT1000</button></div>`
+                            }
+                        </div>
+                    ` : ''}
+
+                    <div class="pt-3 border-t border-borderLight space-y-2 text-xs">
+                        <div class="flex justify-between text-neutral-500">
+                            <span>Товари (${totalQty})</span>
+                            <span class="font-mono text-ink">${formatUAH(subtotal)}</span>
+                        </div>
+                        ${giftWrapCost > 0 ? `
+                            <div class="flex justify-between text-neutral-500">
+                                <span>Подарункове пакування</span>
+                                <span class="font-mono text-ink">+${formatUAH(giftWrapCost)}</span>
+                            </div>
+                        ` : ''}
+                        ${discount > 0 ? `
+                            <div class="flex justify-between store-text-accent font-medium">
+                                <span>Знижка (${previewState.promoCode})</span>
+                                <span class="font-mono">−${formatUAH(discount)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="flex justify-between text-neutral-500">
+                            <span>Доставка</span>
+                            <span class="font-mono text-ink">${shippingCost === 0 ? 'Безкоштовно' : formatUAH(shippingCost)}</span>
+                        </div>
+                        <div class="pt-2.5 border-t border-borderLight flex items-baseline justify-between">
+                            <span class="text-sm font-medium text-ink">Разом до сплати</span>
+                            <span class="text-lg font-mono font-semibold text-ink">${formatUAH(total)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Сітка десктопа
+            let gridClasses = 'grid-cols-12 gap-8';
+            let leftColClasses = 'col-span-7';
+            let rightColClasses = 'col-span-5';
+            if (config.desktopLayout === '50-50') {
+                gridClasses = 'grid-cols-12 gap-8';
+                leftColClasses = 'col-span-6';
+                rightColClasses = 'col-span-6';
+            } else if (config.desktopLayout === 'single') {
+                gridClasses = 'grid-cols-1 max-w-[760px] mx-auto gap-8';
+                leftColClasses = 'col-span-1';
+                rightColClasses = 'col-span-1';
+            }
+
+            // Бейджі активних інтеграцій у шапці вітрини
+            const activeIntegrationsBadges = [];
+            if (config.integrations.gatewayMonobank) activeIntegrationsBadges.push('mono pay');
+            if (config.integrations.gatewayWayForPay) activeIntegrationsBadges.push('WayForPay');
+            if (config.integrations.prroCheckbox) activeIntegrationsBadges.push('Checkbox ПРРО');
+
+            mount.innerHTML = `
+                <!-- Шапка магазину -->
+                <div class="border-b border-borderLight bg-white/80 backdrop-blur px-4 ${isMobile ? 'h-12' : 'px-6 h-16'} flex items-center justify-between">
+                    <div class="store-heading-font text-sm font-semibold tracking-[0.2em] uppercase text-ink">
+                        KONTUR<span class="text-neutral-300 mx-1">/</span>STORE
+                    </div>
+                    ${!isMobile ? `
+                        <div class="flex items-center gap-5 text-xs text-neutral-500">
+                            <span>Новинки</span>
+                            <span>Каталог</span>
+                            <span class="font-mono text-ink">+38 (044) 390-12-45</span>
+                        </div>
+                    ` : `
+                        <span class="text-[11px] font-mono px-2 py-0.5 border border-borderLight rounded bg-white">Кошик (${totalQty})</span>
+                    `}
+                </div>
+
+                <!-- Хлібні крихти -->
+                <div class="border-b border-borderLight px-4 ${isMobile ? 'py-2' : 'px-6 py-2.5'} flex items-center justify-between text-[11px] text-neutral-400">
+                    <div>Головна / Кошик / <span class="text-ink font-medium">Оформлення замовлення</span></div>
+                    ${!isMobile && activeIntegrationsBadges.length ? `
+                        <div class="flex items-center gap-1.5 font-mono text-[10px]">
+                            ${activeIntegrationsBadges.map(b => `<span class="px-1.5 py-0.5 bg-white border border-borderLight rounded text-neutral-600">${b}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Контент модуля -->
+                <div class="flex-1 ${isMobile ? 'p-4 pb-24' : 'max-w-6xl w-full mx-auto p-6 lg:p-8'}">
+                    <h1 class="store-heading-font ${isMobile ? 'text-xl mb-4' : 'text-2xl lg:text-3xl mb-6'} font-medium tracking-tight text-ink">Оформлення замовлення</h1>
+
+                    ${timerHtml}
+
+                    ${isMobile && config.mobilePattern === 'accordion_sticky' ? `
+                        <div class="mb-5 border store-border-accent store-surface-card overflow-hidden">
+                            <button type="button" onclick="previewState.mobileAccordionOpen = !previewState.mobileAccordionOpen; renderLiveStorefront();" class="w-full px-3.5 py-3 flex items-center justify-between text-left">
+                                <div>
+                                    <div class="text-xs font-medium text-ink">Ваше замовлення (${totalQty}) ${previewState.mobileAccordionOpen ? '▲' : '▼'}</div>
+                                    <div class="text-[10px] text-neutral-500">Натисніть, щоб змінити склад або промокод</div>
+                                </div>
+                                <div class="text-sm font-mono font-semibold text-ink">${formatUAH(total)}</div>
+                            </button>
+                            ${previewState.mobileAccordionOpen ? `<div class="p-3.5 border-t border-borderLight bg-white">${summaryBlockHtml}</div>` : ''}
+                        </div>
+                    ` : ''}
+
+                    ${isMobile && config.mobilePattern === 'compact_top' ? `
+                        <div class="mb-5 store-surface-card p-3.5">${summaryBlockHtml}</div>
+                    ` : ''}
+
+                    <div class="${isMobile ? spaceClass : `grid ${gridClasses} items-start`}">
+                        <!-- Ліва колонка: Кроки оформлення -->
+                        <div class="${isMobile ? spaceClass : `${leftColClasses} ${spaceClass}`}">
+
+                            <!-- Крок 1: Покупець -->
+                            <section class="${sectionStyleClass} space-y-3.5">
+                                <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-borderLight">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-5 h-5 rounded-full store-badge-accent text-[11px] font-mono flex items-center justify-center">1</span>
+                                        <h2 class="store-heading-font text-sm font-medium text-ink">Контактні дані</h2>
+                                    </div>
+                                    ${config.showCustomerTabs ? `
+                                        <div class="inline-flex border border-borderLight rounded p-0.5 bg-white text-[11px]">
+                                            <span class="px-2.5 py-0.5 rounded-xs store-badge-accent font-medium">Новий покупець</span>
+                                            <span class="px-2.5 py-0.5 text-neutral-500">Постійний клієнт</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    ${fieldsHtml}
+                                </div>
+                            </section>
+
+                            <!-- Крок 2: Доставка -->
+                            <section class="${sectionStyleClass} space-y-3.5">
+                                <div class="flex items-center justify-between pb-2 border-b border-borderLight">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-5 h-5 rounded-full store-badge-accent text-[11px] font-mono flex items-center justify-center">2</span>
+                                        <h2 class="store-heading-font text-sm font-medium text-ink">Доставка</h2>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-neutral-400">${config.shippingMethodFirst ? 'Спочатку служба' : 'Спочатку адреса'}</span>
+                                </div>
+
+                                ${shippingBlockInner}
+                            </section>
+
+                            <!-- Крок 3: Оплата -->
+                            <section class="${sectionStyleClass} space-y-3.5">
+                                <div class="flex items-center justify-between pb-2 border-b border-borderLight">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-5 h-5 rounded-full store-badge-accent text-[11px] font-mono flex items-center justify-center">3</span>
+                                        <h2 class="store-heading-font text-sm font-medium text-ink">Оплата</h2>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-neutral-400">Доступно: ${allowedPayments.length}</span>
+                                </div>
+
+                                <div class="space-y-2">
+                                    ${allowedPayments.length > 0 ? allowedPayments.map(pm => {
+                                        const isSelected = previewState.selectedPayment === pm.id;
+                                        return `
+                                            <div onclick="previewState.selectedPayment='${pm.id}'; renderLiveStorefront();" class="store-card ${isSelected ? 'active' : ''} p-3 flex items-center gap-2.5">
+                                                <div class="store-radio-dot"><div class="store-radio-dot-inner"></div></div>
+                                                <div>
+                                                    <div class="text-xs font-medium text-ink">${pm.title}</div>
+                                                    <div class="text-[11px] text-neutral-400">${pm.desc}</div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('') : `
+                                        <div class="p-3 border border-red-200 bg-red-50 rounded text-xs text-red-700">
+                                            У матриці «Доставка ↔ Оплата» не увімкнено жодного методу оплати для цієї доставки.
+                                        </div>
+                                    `}
+                                </div>
+
+                                ${config.showNoCall ? `
+                                    <div class="pt-2">
+                                        <label class="inline-flex items-center gap-2 cursor-pointer text-xs text-neutral-600">
+                                            <input type="checkbox" class="store-checkbox">
+                                            <span>Не телефонувати для підтвердження (надіслати ТТН у месенджер)</span>
+                                        </label>
+                                    </div>
+                                ` : ''}
+                            </section>
+
+                        </div>
+
+                        <!-- Права колонка (Desktop Кошик) -->
+                        ${!isMobile ? `
+                            <div class="${rightColClasses}">
+                                <div class="store-surface-card p-5 space-y-5">
+                                    <div class="flex items-center justify-between pb-3 border-b border-borderLight">
+                                        <h2 class="store-heading-font text-sm font-medium text-ink">Ваше замовлення</h2>
+                                        <span class="text-xs font-mono text-neutral-400">${totalQty} шт.</span>
+                                    </div>
+
+                                    ${summaryBlockHtml}
+
+                                    ${config.requirePrivacyPolicy ? `
+                                        <label class="flex items-start gap-2 cursor-pointer text-[11px] text-neutral-500">
+                                            <input type="checkbox" ${previewState.privacyChecked ? 'checked' : ''} onchange="previewState.privacyChecked = this.checked" class="store-checkbox mt-0.5">
+                                            <span>Погоджуюсь з умовами публічної оферти та політикою конфіденційності</span>
+                                        </label>
+                                    ` : ''}
+
+                                    <button type="button" onclick="submitPreviewOrder('${activeShip?.title || ''}', '${allowedPayments.find(p => p.id === previewState.selectedPayment)?.title || ''}', '${formatUAH(total)}')" class="w-full py-3.5 px-4 store-btn-primary text-xs cursor-pointer">
+                                        Підтвердити замовлення
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Мобільна нижня фіксована панель оплати -->
+                ${isMobile ? `
+                    <div class="sticky bottom-0 left-0 right-0 bg-white border-t store-border-accent px-4 py-3 flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-[10px] text-neutral-500">До сплати</div>
+                            <div class="text-sm font-mono font-semibold text-ink">${formatUAH(total)}</div>
+                        </div>
+                        <button type="button" onclick="submitPreviewOrder('${activeShip?.title || ''}', '${allowedPayments.find(p => p.id === previewState.selectedPayment)?.title || ''}', '${formatUAH(total)}')" class="flex-1 py-2.5 px-3 store-btn-primary text-xs">
+                            Підтвердити замовлення
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function changePreviewQty(id, delta) {
+            const item = previewState.cart.find(i => i.id === id);
+            if (!item) return;
+            item.qty = Math.max(1, item.qty + delta);
+            renderLiveStorefront();
+        }
+
+        function applyPreviewPromo() {
+            const val = document.getElementById('preview-coupon-input')?.value.trim().toUpperCase();
+            if (val === 'SALE10' || val === 'GIFT1000') {
+                previewState.promoCode = val;
+                showToast(`Промокод ${val} застосовано`);
+            } else {
+                previewState.promoCode = null;
+                showToast('Доступні тестові коди: SALE10 або GIFT1000');
+            }
+            renderLiveStorefront();
+        }
+
+        function submitPreviewOrder(shipTitle, payTitle, totalText) {
+            if (config.requirePrivacyPolicy && !previewState.privacyChecked) {
+                showToast('Потрібно погодитися з політикою конфіденційності');
+                return;
+            }
+            const orderId = '#OC-' + Math.floor(1000 + Math.random() * 8999);
+            document.getElementById('test-order-id').textContent = orderId;
+
+            const eventsTriggered = [];
+            if (config.integrations.analyticsGA4) eventsTriggered.push('GA4: purchase');
+            if (config.integrations.analyticsMetaPixel) eventsTriggered.push('Meta Pixel: Purchase');
+            if (config.integrations.prroCheckbox) eventsTriggered.push('Checkbox ПРРО: чек створено');
+
+            document.getElementById('test-order-summary').innerHTML = `
+                <div class="flex justify-between"><span>Місто:</span><strong class="text-ink">${previewState.city}</strong></div>
+                <div class="flex justify-between"><span>Доставка:</span><strong class="text-ink">${shipTitle}</strong></div>
+                <div class="flex justify-between"><span>Оплата:</span><strong class="text-ink">${payTitle}</strong></div>
+                <div class="flex justify-between pt-1.5 border-t border-borderLight"><span>Разом:</span><strong class="font-mono text-ink">${totalText}</strong></div>
+                ${eventsTriggered.length ? `<div class="pt-2 flex flex-wrap gap-1">${eventsTriggered.map(e => `<span class="px-1.5 py-0.5 bg-surface border border-borderLight rounded font-mono text-[10px] text-ink">${e}</span>`).join('')}</div>` : ''}
+            `;
+            document.getElementById('order-success-modal').classList.remove('hidden');
+        }
+
+        // =========================================================================
+        // 5. ПЕРЕМИКАЧІ ВКЛАДОК АДМІНКИ, ПРИСТРОЇВ, ІМПОРТ / ЕКСПОРТ JSON
+        // =========================================================================
+        function switchAdminTab(tabName) {
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+                const active = btn.dataset.adminTab === tabName;
+                btn.className = active
+                    ? 'admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-ink text-ink whitespace-nowrap transition-colors'
+                    : 'admin-tab-btn px-2.5 py-2 text-xs font-medium border-b-2 border-transparent text-neutral-500 hover:text-ink whitespace-nowrap transition-colors';
+            });
+
+            document.querySelectorAll('.admin-tab-panel').forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            document.getElementById('tab-content-' + tabName).classList.remove('hidden');
+        }
+
+        function setPreviewDevice(device) {
+            previewState.device = device;
+            const frame = document.getElementById('preview-device-frame');
+            const btnDesk = document.getElementById('preview-btn-desktop');
+            const btnMob = document.getElementById('preview-btn-mobile');
+
+            if (device === 'mobile') {
+                frame.className = 'device-mobile flex flex-col';
+                btnMob.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm bg-ink text-white transition-colors flex items-center gap-1.5';
+                btnDesk.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm text-neutral-600 hover:text-ink transition-colors flex items-center gap-1.5';
+            } else {
+                frame.className = 'device-desktop min-h-full flex flex-col';
+                btnDesk.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm bg-ink text-white transition-colors flex items-center gap-1.5';
+                btnMob.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm text-neutral-600 hover:text-ink transition-colors flex items-center gap-1.5';
+            }
+            renderLiveStorefront();
+        }
+
+        function switchMobilePane(pane) {
+            const adminPane = document.getElementById('admin-configurator-pane');
+            const previewPane = document.getElementById('live-preview-pane');
+            const btnAdmin = document.getElementById('mobile-pane-admin');
+            const btnPrev = document.getElementById('mobile-pane-preview');
+
+            if (pane === 'preview') {
+                adminPane.classList.add('hidden');
+                previewPane.classList.remove('hidden');
+                previewPane.classList.add('flex');
+                btnPrev.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm bg-ink text-white';
+                btnAdmin.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm text-neutral-600';
+            } else {
+                previewPane.classList.add('hidden');
+                previewPane.classList.remove('flex');
+                adminPane.classList.remove('hidden');
+                btnAdmin.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm bg-ink text-white';
+                btnPrev.className = 'px-2.5 py-1 text-[11px] font-medium rounded-sm text-neutral-600';
+            }
+        }
+
+        function toggleGlobalStatus() {
+            config.enabled = !config.enabled;
+            document.getElementById('global-status-dot').className = config.enabled
+                ? 'w-2 h-2 rounded-full bg-emerald-600'
+                : 'w-2 h-2 rounded-full bg-neutral-400';
+            document.getElementById('global-status-text').textContent = config.enabled ? 'Увімкнено' : 'Вимкнено';
+            renderLiveStorefront();
+        }
+
+        function openJsonModal() {
+            const payload = {
+                module: 'extension/module/kontur_checkout',
+                version: '2.5.0',
+                settings: config
+            };
+            document.getElementById('json-export-output').textContent = JSON.stringify(payload, null, 2);
+            document.getElementById('json-export-modal').classList.remove('hidden');
+        }
+
+        function closeJsonModal() {
+            document.getElementById('json-export-modal').classList.add('hidden');
+        }
+
+        function copyJsonConfig() {
+            const text = document.getElementById('json-export-output').textContent;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('JSON конфігурації скопійовано в буфер обміну');
+        }
+
+        function openImportModal() {
+            document.getElementById('json-import-modal').classList.remove('hidden');
+        }
+
+        function closeImportModal() {
+            document.getElementById('json-import-modal').classList.add('hidden');
+        }
+
+        function applyImportedJson() {
+            try {
+                const raw = document.getElementById('json-import-input').value.trim();
+                const parsed = JSON.parse(raw);
+                const importedSettings = parsed.settings || parsed;
+                if (!importedSettings.fields || !importedSettings.theme) {
+                    throw new Error('Invalid schema');
+                }
+                config = Object.assign(getDefaultConfig(), importedSettings);
+                syncAllAdminUi();
+                renderLiveStorefront();
+                closeImportModal();
+                showToast('JSON-конфігурацію успішно імпортовано');
+            } catch (err) {
+                showToast('Помилка формату JSON. Перевірте структуру.');
+            }
+        }
+
+        function resetAdminConfig() {
+            config = getDefaultConfig();
+            syncAllAdminUi();
+            renderLiveStorefront();
+            showToast('Налаштування скинуто до базових');
+        }
+
+        function saveAdminConfig() {
+            fetch(window.KONTUR_SAVE_URL, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ config: config })
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data && data.success) showToast(data.success);
+                else showToast((data && data.error) ? data.error : 'Помилка збереження');
+            }).catch(function () {
+                showToast('Помилка з\'єднання з OpenCart');
+            });
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-ink text-white text-xs px-4 py-2.5 rounded shadow-lg border border-neutral-800 fade-in pointer-events-auto';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.2s ease';
+                setTimeout(() => toast.remove(), 200);
+            }, 2500);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            var dot = document.getElementById('global-status-dot');
+            var label = document.getElementById('global-status-text');
+            if (dot) dot.className = config.enabled ? 'w-2 h-2 rounded-full bg-emerald-600' : 'w-2 h-2 rounded-full bg-neutral-400';
+            if (label) label.textContent = config.enabled ? 'Увімкнено' : 'Вимкнено';
+            syncAllAdminUi();
+            renderLiveStorefront();
+        });
+    </script>
+</body>
+</html>

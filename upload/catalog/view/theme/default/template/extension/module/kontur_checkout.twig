@@ -1,0 +1,359 @@
+{{ header }}
+<div id="kontur-onepage" class="{{ theme_class }}" style="{{ theme_style }}">
+  <div class="k-wrap">
+    <div class="k-crumbs">
+      <nav>
+        <a href="{{ home }}">{{ text_home }}</a>
+        <span> / </span>
+        <a href="{{ cart_url }}">{{ text_cart }}</a>
+        <span> / </span>
+        <span class="here">{{ heading_title }}</span>
+      </nav>
+      <a href="{{ home }}">← Продовжити покупки</a>
+    </div>
+
+    <div class="k-title-row">
+      <div>
+        <h1 class="k-heading">Оформлення замовлення</h1>
+        <p class="k-lead">Усі кроки на одній сторінці — швидке замовлення без зайвих переходів</p>
+      </div>
+      <div>
+        {% if badges %}
+        <div class="k-badges">
+          {% for badge in badges %}<span class="k-badge">{{ badge }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        <div class="k-secure">Безпечне з'єднання</div>
+      </div>
+    </div>
+
+    {% if show_timer %}
+    <div class="k-timer">
+      <span>Товари в кошику зарезервовано за вами:</span>
+      <b id="reserve-clock">15:00</b>
+    </div>
+    {% endif %}
+
+    <div class="k-accordion" id="mobile-order-accordion">
+      <button type="button" class="k-acc-btn" id="acc-toggle">
+        <span>
+          <span class="k-thumbs" id="mobile-thumbs"></span>
+          <strong style="font-size:12px;font-weight:500;">Ваше замовлення (<span id="mobile-count">0</span>)</strong>
+          <span class="k-muted" id="acc-sub">Натисніть, щоб змінити або ввести промокод</span>
+        </span>
+        <b class="k-mono" id="mobile-total">0</b>
+      </button>
+      <div class="k-acc-body" id="acc-body">
+        <div id="mobile-items"></div>
+        <div id="mobile-extra"></div>
+      </div>
+    </div>
+
+    <div class="k-grid">
+      <div class="k-main">
+        <section class="k-section" id="section-customer">
+          <div class="k-section-head">
+            <div class="k-head-left">
+              <span class="k-step">1</span>
+              <h2 class="k-heading">Контактні дані</h2>
+            </div>
+            {% if show_customer_tabs %}
+            <div class="k-tabs">
+              <button type="button" class="on" id="tab-new">Новий покупець</button>
+              <button type="button" id="tab-return">Постійний клієнт</button>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if show_customer_tabs %}
+          <div class="k-login k-hidden" id="login-box">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <strong style="font-size:12px;letter-spacing:.04em;text-transform:uppercase;">Вхід в акаунт OpenCart</strong>
+              <button type="button" class="k-linkish" id="login-close">Закрити</button>
+            </div>
+            <div class="k-login-grid">
+              <div>
+                <label class="k-label">E-mail або телефон</label>
+                <input type="text" id="login-email" class="oc-input" placeholder="o.melnyk@ukr.net" autocomplete="username">
+              </div>
+              <div>
+                <label class="k-label">Пароль</label>
+                <input type="password" id="login-password" class="oc-input" placeholder="••••••••" autocomplete="current-password">
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:12px;">
+              <button type="button" class="k-btn" style="width:auto;padding:0 18px;margin:0;" id="login-submit">Увійти та підставити дані</button>
+              <a href="{{ forgotten }}" style="font-size:12px;color:#737373;">Забули пароль?</a>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="k-fields">
+            {% for field in fields %}
+            <div class="k-field {{ field.width == 'full' ? 'full' : '' }}">
+              <label class="k-label" for="field-{{ field.id }}">{{ field.label }}{% if field.required %} <span class="k-req">*</span>{% endif %}</label>
+              {% if field.type == 'textarea' %}
+              <textarea id="field-{{ field.id }}" class="oc-input" rows="3" data-field="{{ field.id }}" data-required="{{ field.required ? '1' : '0' }}" data-type="{{ field.type }}" placeholder="{{ field.placeholder }}">{{ field.value }}</textarea>
+              {% else %}
+              <input id="field-{{ field.id }}" class="oc-input {{ field.type == 'tel' or field.type == 'email' ? 'k-mono' : '' }}" type="{{ field.type == 'tel' ? 'tel' : (field.type == 'email' ? 'email' : 'text') }}" data-field="{{ field.id }}" data-required="{{ field.required ? '1' : '0' }}" data-type="{{ field.type }}" value="{{ field.value }}" placeholder="{{ field.placeholder }}" {% if field.id == 'telephone' %}inputmode="tel" autocomplete="tel"{% endif %} {% if field.id == 'email' %}inputmode="email" autocomplete="email"{% endif %} {% if field.id == 'firstname' %}autocomplete="given-name"{% endif %} {% if field.id == 'lastname' %}autocomplete="family-name"{% endif %}>
+              {% endif %}
+              <p class="k-error" id="error-{{ field.id }}"></p>
+              {% if field.id == 'telephone' %}<div class="k-hint" id="phone-hint"></div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        {% if has_shipping %}
+        <section class="k-section" id="section-shipping">
+          <div class="k-section-head">
+            <div class="k-head-left">
+              <span class="k-step">2</span>
+              <h2 class="k-heading">Доставка</h2>
+            </div>
+            <span class="k-muted">{{ shipping_first ? 'Спочатку служба' : 'Спочатку адреса' }}</span>
+          </div>
+          <div class="k-ship-stack">
+            <div class="k-ship-cards">
+              <div class="k-label">1. Оберіть спосіб доставки</div>
+              <div class="k-cards" id="ship-cards">
+                {% for ship in shipping_methods %}
+                <div class="oc-radio-card {{ loop.first ? 'active' : '' }}" data-ship="{{ ship.id }}" data-type="{{ ship.addressType }}" data-cost="{{ ship.cost }}" data-free="{{ ship.freeFrom }}" data-title="{{ ship.title }}">
+                  <div class="k-card-main">
+                    <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                    <div>
+                      <div class="k-card-title">{{ ship.title }}</div>
+                      <div class="k-card-sub">{{ ship.subtitle }}</div>
+                    </div>
+                  </div>
+                  <div class="k-price" data-ship-price="{{ ship.id }}">{% if ship.cost == 0 %}Безкоштовно{% else %}{{ ship.cost }} ₴{% endif %}</div>
+                </div>
+                {% endfor %}
+              </div>
+              <p class="k-error" id="error-shipping"></p>
+            </div>
+
+            <div class="k-ship-fields k-panel">
+              <h3 id="ship-heading">2. Дані для доставки</h3>
+              <div id="city-block" class="k-city">
+                <label class="k-label" for="input-city">Місто / Населений пункт <span class="k-req">*</span></label>
+                <input type="text" id="input-city" class="oc-input" value="Київ" autocomplete="off" placeholder="Введіть назву міста...">
+                <p class="k-error" id="error-city"></p>
+                <div class="k-ac" id="city-ac"></div>
+                {% if show_chips %}
+                <div class="k-chips" id="city-chips">
+                  {% for city in cities %}
+                  <button type="button" data-city="{{ city }}">{{ city }}</button>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+
+              <div id="fields-branch" style="margin-top:12px;">
+                <div style="display:flex;justify-content:space-between;gap:8px;">
+                  <label class="k-label" for="select-branch">Відділення або поштомат <span class="k-req">*</span></label>
+                  {% if np_live %}<span class="k-hint ok">API НП</span>{% endif %}
+                </div>
+                {% if np_live %}
+                <input type="text" id="branch-search" class="oc-input" placeholder="Пошук за номером відділення або вулицею..." style="margin-bottom:8px;">
+                {% endif %}
+                <div class="k-select-wrap">
+                  <select id="select-branch" class="oc-input"></select>
+                </div>
+                <p class="k-error" id="error-branch"></p>
+              </div>
+
+              <div id="fields-courier" class="k-hidden" style="margin-top:12px;">
+                <div class="k-courier">
+                  <div>
+                    <label class="k-label" for="input-street">Вулиця <span class="k-req">*</span></label>
+                    <input type="text" id="input-street" class="oc-input" placeholder="вул. Саксаганського">
+                    <p class="k-error" id="error-street"></p>
+                  </div>
+                  <div>
+                    <label class="k-label" for="input-house">Будинок <span class="k-req">*</span></label>
+                    <input type="text" id="input-house" class="oc-input" placeholder="24А">
+                    <p class="k-error" id="error-house"></p>
+                  </div>
+                </div>
+                <div class="k-2" style="margin-top:12px;">
+                  <div>
+                    <label class="k-label" for="input-apt">Квартира / офіс / поверх</label>
+                    <input type="text" id="input-apt" class="oc-input" placeholder="кв. 18, 4 поверх">
+                  </div>
+                  <div>
+                    <label class="k-label" for="select-time">Бажаний інтервал доставки</label>
+                    <div class="k-select-wrap">
+                      <select id="select-time" class="oc-input">
+                        <option>Будь-який час (09:00 – 21:00)</option>
+                        <option>Ранок / День (09:00 – 14:00)</option>
+                        <option>День (14:00 – 18:00)</option>
+                        <option>Вечір (18:00 – 21:00)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="fields-postcode" class="k-hidden" style="margin-top:12px;">
+                <div class="k-up">
+                  <div>
+                    <label class="k-label" for="input-postcode">Поштовий індекс <span class="k-req">*</span></label>
+                    <input type="text" id="input-postcode" class="oc-input k-mono" inputmode="numeric" maxlength="5" placeholder="01001">
+                    <p class="k-error" id="error-postcode"></p>
+                  </div>
+                  <div>
+                    <label class="k-label" for="input-up">Номер відділення або вулиця <span class="k-req">*</span></label>
+                    <input type="text" id="input-up" class="oc-input" placeholder="Відділення №1, вул. Хрещатик, 22">
+                    <p class="k-error" id="error-up_branch"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div id="fields-pickup" class="k-hidden" style="margin-top:12px;">
+                <div class="k-pickup">
+                  <div class="row">
+                    <strong style="color:#111;">Шоурум</strong>
+                    <span class="k-tag">В наявності</span>
+                  </div>
+                  <div id="pickup-address" style="margin-top:4px;"></div>
+                  <div style="color:#a3a3a3;margin-top:4px;">Пн–Нд 10:00–20:00 • Примірка перед покупкою</div>
+                </div>
+                <div style="margin-top:12px;">
+                  <div class="k-label">Коли плануєте забрати замовлення?</div>
+                  <div class="k-slots">
+                    <button type="button" class="k-slot on" data-slot="Сьогодні, 14:00 – 20:00"><b>Сьогодні</b><small>14:00 – 20:00</small></button>
+                    <button type="button" class="k-slot" data-slot="Завтра, 10:00 – 20:00"><b>Завтра</b><small>10:00 – 20:00</small></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        {% endif %}
+
+        <section class="k-section" id="section-payment">
+          <div class="k-section-head">
+            <div class="k-head-left">
+              <span class="k-step">3</span>
+              <h2 class="k-heading">Оплата</h2>
+            </div>
+            <span class="k-muted">Доступно: <span id="pay-count">0</span></span>
+          </div>
+          <div class="k-cards" id="pay-cards">
+            {% for pay in payment_methods %}
+            {% if pay.enabled %}
+            <div class="oc-radio-card" data-pay="{{ pay.id }}">
+              <div class="k-card-main">
+                <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                <div>
+                  <div class="k-card-title">{{ pay.title }}</div>
+                  <div class="k-card-sub">{{ pay.desc }}</div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          <p class="k-error" id="error-payment"></p>
+          <div id="invoice-box" class="k-panel k-hidden" style="margin-top:12px;">
+            <div class="k-label">Реквізити платника для виставлення рахунку</div>
+            <div class="k-2">
+              <div>
+                <label class="k-label" for="input-edrpou">Код ЄДРПОУ або ІПН <span class="k-req">*</span></label>
+                <input type="text" id="input-edrpou" class="oc-input k-mono" inputmode="numeric" maxlength="10" placeholder="12345678 або 1234567890">
+                <p class="k-error" id="error-edrpou"></p>
+              </div>
+              <div>
+                <label class="k-label" for="input-company">Назва компанії або ФОП <span class="k-req">*</span></label>
+                <input type="text" id="input-company" class="oc-input" placeholder="ТОВ «Контур» або ФОП Мельник О.В.">
+                <p class="k-error" id="error-company"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="k-section" id="section-comment">
+          <div class="k-section-head">
+            <div class="k-head-left">
+              <span class="k-step ghost">4</span>
+              <h2 class="k-heading">Коментар до замовлення</h2>
+            </div>
+            <button type="button" class="k-linkish" id="comment-toggle">Згорнути</button>
+          </div>
+          <div id="comment-box">
+            <textarea id="input-comment" class="oc-input" rows="3" placeholder="Код домофону, побажання щодо пакування або уточнення для менеджера..."></textarea>
+            {% if show_nocall %}
+            <label class="k-check" style="margin-top:12px;">
+              <input type="checkbox" id="input-nocall" class="oc-checkbox">
+              <span>Не телефонувати мені для підтвердження замовлення (надіслати номер ТТН у Viber / Telegram / SMS)</span>
+            </label>
+            {% endif %}
+          </div>
+          {% if show_privacy %}
+          <div class="k-mobile-agree">
+            <label class="k-check">
+              <input type="checkbox" id="agree-mobile" class="oc-checkbox" checked>
+              <span>Погоджуюсь з умовами <a href="{{ terms_url }}">публічної оферти</a> та <a href="{{ privacy_url }}">політикою конфіденційності</a></span>
+            </label>
+            <p class="k-error" id="error-agree-mobile"></p>
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <aside class="k-desktop">
+        <div class="k-summary">
+          <div class="k-sum-head">
+            <h2 class="k-heading">Ваше замовлення</h2>
+            <span class="k-muted" id="desk-count"></span>
+          </div>
+          <div id="desk-items"></div>
+          <div id="desk-extra"></div>
+          {% if show_privacy %}
+          <label class="k-check" style="margin-top:14px;">
+            <input type="checkbox" id="agree-desk" class="oc-checkbox" checked>
+            <span>Я погоджуюсь з умовами <a href="{{ terms_url }}">публічної оферти</a> та <a href="{{ privacy_url }}">політикою конфіденційності</a></span>
+          </label>
+          <p class="k-error" id="error-agree"></p>
+          {% endif %}
+          <button type="button" class="k-btn" id="btn-submit">Підтвердити замовлення →</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="k-sticky" id="sticky-bar">
+    <button type="button" id="sticky-jump" style="border:0;background:transparent;text-align:left;cursor:pointer;">
+      <div class="k-muted">До сплати</div>
+      <div class="sum" id="sticky-total">0</div>
+    </button>
+    <button type="button" class="k-btn" id="btn-submit-mobile">Підтвердити замовлення →</button>
+  </div>
+
+  <div class="k-modal" id="success-modal">
+    <div class="k-dialog">
+      <div class="ok">✓</div>
+      <div class="k-muted" style="letter-spacing:.08em;text-transform:uppercase;">Замовлення створено в OpenCart</div>
+      <h3 class="k-heading">Дякуємо, <span id="modal-name"></span>!</h3>
+      <p>Ваше замовлення <b class="k-mono" id="modal-number" style="color:#111;"></b> прийнято в обробку. Деталі відправлення надійдуть у SMS / Viber<span id="modal-email-note"></span>.</p>
+      <div class="meta">
+        <div class="line"><span>Доставка:</span><strong id="modal-ship"></strong></div>
+        <div class="line"><span>Адреса / Відділення:</span><span id="modal-address" style="text-align:right;"></span></div>
+        <div class="line"><span>Оплата:</span><strong id="modal-pay" style="text-align:right;"></strong></div>
+        <div class="line"><span>Разом до сплати:</span><b class="k-mono" id="modal-total"></b></div>
+      </div>
+      <div class="actions">
+        <a class="k-btn" id="modal-success-link" href="{{ success_url }}" style="text-decoration:none;">До сторінки замовлення</a>
+        <button type="button" class="ghost" id="modal-close">Закрити</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="kontur-toast"></div>
+{% if custom_css %}
+<style id="kontur-custom-css">{{ custom_css|raw }}</style>
+{% endif %}
+<script type="application/json" id="kontur-boot">{{ boot_json|raw }}</script>
+<script src="{{ script_url }}"></script>
+{{ footer }}

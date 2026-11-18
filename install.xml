@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>KONTUR / OnePage Checkout</name>
+    <code>kontur_checkout</code>
+    <version>2.5.0</version>
+    <author>KONTUR</author>
+    <link>https://github.com/Serhonys/kontur-checkout-ocstore</link>
+    <file path="catalog/controller/checkout/checkout.php">
+        <operation>
+            <search><![CDATA[public function index() {]]></search>
+            <add position="after"><![CDATA[
+        if ($this->config->get('module_kontur_checkout_status')) {
+            $this->response->setOutput($this->load->controller('extension/module/kontur_checkout/page'));
+            return;
+        }
+            ]]></add>
+        </operation>
+    </file>
+</modification>
