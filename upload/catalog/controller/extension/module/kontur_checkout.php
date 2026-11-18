@@ -33,7 +33,7 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
         $font = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap';
         $this->document->addStyle($font);
-        $this->document->addStyle('catalog/view/stylesheet/kontur_checkout/checkout.css?v=2.5.0');
+        $this->document->addStyle('catalog/view/javascript/kontur_checkout/checkout.css?v=2.5.1');
 
         $data = array();
         $data['heading_title'] = $this->language->get('heading_title');
@@ -78,7 +78,7 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $data['cities'] = isset($config['quickCities']) ? $config['quickCities'] : array();
         $data['np_live'] = !empty($config['integrations']['npLiveSearch']);
         $data['badges'] = $this->integrationBadges($config);
-        $data['script_url'] = ($this->request->server['HTTPS'] ? HTTPS_SERVER : HTTP_SERVER) . 'catalog/view/javascript/kontur_checkout/checkout.js?v=2.5.0';
+        $data['script_url'] = ($this->request->server['HTTPS'] ? HTTPS_SERVER : HTTP_SERVER) . 'catalog/view/javascript/kontur_checkout/checkout.js?v=2.5.1';
         $data['boot_json'] = json_encode($this->boot($config, $data['has_shipping']), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
         $data['header'] = $this->load->controller('common/header');
