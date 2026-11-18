@@ -16,7 +16,9 @@
     couponDraft: '',
     voucherDraft: '',
     seconds: 15 * 60,
-    branchTimer: null
+    branchTimer: null,
+    citySeq: 0,
+    branchSeq: 0
   };
 
   function $(id) { return document.getElementById(id); }
@@ -269,23 +271,35 @@
     var select = $('select-branch');
     if (!select) return;
     var city = ($('input-city') && $('input-city').value.trim()) || '';
+    var cityRef = ($('input-city') && $('input-city').dataset.ref) || '';
     var q = ($('branch-search') && $('branch-search').value.trim()) || '';
-    var apply = function (rows) {
+    var apply = function (rows, fromDb) {
+      var previous = select.value;
       var html = '<option value="">— Оберіть відділення у м. ' + escapeHtml(city || '...') + ' —</option>';
       rows.forEach(function (row) { html += '<option value="' + escapeHtml(row) + '">' + escapeHtml(row) + '</option>'; });
       select.innerHTML = html;
-      if (rows.length) select.selectedIndex = 1;
+      if (previous) {
+        select.value = previous;
+      }
+      if (!select.value && !fromDb && rows.length) select.selectedIndex = 1;
     };
     var local = localBranches(city).filter(function (row) {
       return !q || row.toLowerCase().indexOf(q.toLowerCase()) !== -1;
     });
-    apply(local);
-    if (boot.npReal && city) {
-      var url = boot.urls.branches + (boot.urls.branches.indexOf('?') === -1 ? '?' : '&') + 'city=' + encodeURIComponent(city) + '&q=' + encodeURIComponent(q);
+    if ((boot.npDb || boot.npReal) && (city || cityRef)) {
+      if (!boot.npDb) apply(local, false);
+      var seq = ++state.branchSeq;
+      var url = boot.urls.branches + (boot.urls.branches.indexOf('?') === -1 ? '?' : '&') + 'city=' + encodeURIComponent(city) + '&ref=' + encodeURIComponent(cityRef) + '&q=' + encodeURIComponent(q);
       fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
-        if (data && data.branches && data.branches.length) apply(data.branches);
-      }).catch(function () {});
+        if (seq !== state.branchSeq) return;
+        if (data && data.branches) apply(data.branches, data.source === 'db' || !!boot.npDb);
+      }).catch(function () {
+        if (seq !== state.branchSeq) return;
+        if (!boot.npDb) apply(local, false);
+      });
+      return;
     }
+    apply(local, false);
   }
   function localBranches(city) {
     var map = boot.branches || {};
@@ -502,32 +516,64 @@
   });
   document.querySelectorAll('[data-city]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if ($('input-city')) $('input-city').value = btn.getAttribute('data-city');
+      if ($('input-city')) {
+        $('input-city').value = btn.getAttribute('data-city');
+        $('input-city').dataset.ref = '';
+      }
       document.querySelectorAll('[data-city]').forEach(function (b) { b.classList.toggle('on', b === btn); });
+      var box = $('city-ac');
+      if (box) box.classList.remove('on');
       fillBranches();
     });
   });
+  function bindCityPicks(box) {
+    box.querySelectorAll('[data-pick]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        $('input-city').value = b.getAttribute('data-pick');
+        $('input-city').dataset.ref = b.getAttribute('data-ref') || '';
+        box.classList.remove('on');
+        fillBranches();
+      });
+    });
+  }
+  function suggestCities(raw) {
+    var box = $('city-ac');
+    if (!box) return;
+    var val = raw.trim().toLowerCase();
+    if (!val) { box.classList.remove('on'); return; }
+    if (boot.npDb && raw.trim().length >= 2 && boot.urls.cities) {
+      var seq = ++state.citySeq;
+      var url = boot.urls.cities + (boot.urls.cities.indexOf('?') === -1 ? '?' : '&') + 'q=' + encodeURIComponent(raw.trim());
+      fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
+        if (seq !== state.citySeq) return;
+        var items = (data && data.cities) || [];
+        if (!items.length) { box.classList.remove('on'); return; }
+        box.innerHTML = items.map(function (c) {
+          var side = c.area ? c.area : 'Україна';
+          return '<button type="button" data-pick="' + escapeHtml(c.name) + '" data-ref="' + escapeHtml(c.ref || '') + '"><span>' + escapeHtml(c.name) + '</span><span style="color:#a3a3a3;">' + escapeHtml(side) + '</span></button>';
+        }).join('');
+        box.classList.add('on');
+        bindCityPicks(box);
+      }).catch(function () {});
+      return;
+    }
+    var matches = (boot.cities || []).filter(function (c) { return c.toLowerCase().indexOf(val) !== -1; });
+    if (!matches.length) { box.classList.remove('on'); return; }
+    box.innerHTML = matches.map(function (c) {
+      return '<button type="button" data-pick="' + escapeHtml(c) + '" data-ref=""><span>' + escapeHtml(c) + '</span><span style="color:#a3a3a3;">Україна</span></button>';
+    }).join('');
+    box.classList.add('on');
+    bindCityPicks(box);
+  }
   if ($('input-city')) {
     $('input-city').addEventListener('input', function () {
-      var val = this.value.trim().toLowerCase();
-      var box = $('city-ac');
+      this.dataset.ref = '';
+      var raw = this.value;
       clearTimeout(state.branchTimer);
-      state.branchTimer = setTimeout(fillBranches, 250);
-      if (!box) return;
-      if (!val) { box.classList.remove('on'); return; }
-      var matches = (boot.cities || []).filter(function (c) { return c.toLowerCase().indexOf(val) !== -1; });
-      if (!matches.length) { box.classList.remove('on'); return; }
-      box.innerHTML = matches.map(function (c) {
-        return '<button type="button" data-pick="' + escapeHtml(c) + '"><span>' + escapeHtml(c) + '</span><span style="color:#a3a3a3;">Україна</span></button>';
-      }).join('');
-      box.classList.add('on');
-      box.querySelectorAll('[data-pick]').forEach(function (b) {
-        b.addEventListener('click', function () {
-          $('input-city').value = b.getAttribute('data-pick');
-          box.classList.remove('on');
-          fillBranches();
-        });
-      });
+      state.branchTimer = setTimeout(function () {
+        fillBranches();
+        suggestCities(raw);
+      }, 250);
     });
   }
   if ($('branch-search')) {

@@ -152,9 +152,9 @@
               <div id="fields-branch" style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;gap:8px;">
                   <label class="k-label" for="select-branch">Відділення або поштомат <span class="k-req">*</span></label>
-                  {% if np_live %}<span class="k-hint ok">API НП</span>{% endif %}
+                  {% if np_db %}<span class="k-hint ok">База НП</span>{% elseif np_live %}<span class="k-hint ok">API НП</span>{% endif %}
                 </div>
-                {% if np_live %}
+                {% if np_db or np_live %}
                 <input type="text" id="branch-search" class="oc-input" placeholder="Пошук за номером відділення або вулицею..." style="margin-bottom:8px;">
                 {% endif %}
                 <div class="k-select-wrap">

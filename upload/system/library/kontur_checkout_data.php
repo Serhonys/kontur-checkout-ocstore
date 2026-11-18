@@ -4,7 +4,7 @@
  * Версія модуля збігається з полем version у JSON-експорті адмінки.
  */
 function kontur_checkout_version() {
-    return '2.5.1';
+    return '2.5.2';
 }
 
 function kontur_checkout_defaults() {

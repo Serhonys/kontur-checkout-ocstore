@@ -34,12 +34,16 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
         $save = html_entity_decode($this->url->link('extension/module/kontur_checkout/save', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
         $back = html_entity_decode($this->url->link('marketplace/extension', $token_key . '=' . $token . '&type=module', true), ENT_QUOTES, 'UTF-8');
+        $np_sync = html_entity_decode($this->url->link('extension/module/kontur_checkout/npSync', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
+        $np_status = html_entity_decode($this->url->link('extension/module/kontur_checkout/npStatus', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
 
         $json = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
         $html = str_replace('__KONTUR_CONFIG_JSON__', $json, $html);
         $html = str_replace('__KONTUR_SAVE_URL__', $save, $html);
         $html = str_replace('__KONTUR_BACK_URL__', $back, $html);
+        $html = str_replace('__KONTUR_NP_SYNC_URL__', $np_sync, $html);
+        $html = str_replace('__KONTUR_NP_STATUS_URL__', $np_status, $html);
 
         $this->response->setOutput($html);
     }
@@ -74,6 +78,44 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $this->response->setOutput(json_encode($json));
     }
 
+    public function npStatus() {
+        $this->response->addHeader('Content-Type: application/json; charset=utf-8');
+        if (!$this->user->hasPermission('access', 'extension/module/kontur_checkout')) {
+            $this->response->setOutput(json_encode(array('error' => 'Немає доступу')));
+            return;
+        }
+        require_once(DIR_SYSTEM . 'library/kontur_np.php');
+        $counts = kontur_np_ready($this->db) ? kontur_np_counts($this->db) : array('warehouses' => 0, 'cities' => 0);
+        $meta = kontur_np_meta_read($this->db);
+        $this->response->setOutput(json_encode(array(
+            'warehouses' => $counts['warehouses'],
+            'cities' => $counts['cities'],
+            'updated' => isset($meta['updated']) ? $meta['updated'] : ''
+        )));
+    }
+
+    public function npSync() {
+        $this->response->addHeader('Content-Type: application/json; charset=utf-8');
+        if (!$this->user->hasPermission('modify', 'extension/module/kontur_checkout')) {
+            $this->response->setOutput(json_encode(array('error' => 'Немає прав на зміну модуля')));
+            return;
+        }
+        require_once(DIR_SYSTEM . 'library/kontur_np.php');
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            $payload = array();
+        }
+        $key = isset($payload['key']) ? trim((string)$payload['key']) : '';
+        if (!kontur_np_key_ok($key)) {
+            $this->response->setOutput(json_encode(array('error' => 'Потрібен API-ключ Нової Пошти: 32 символи з кабінету. ТТН не створюються.')));
+            return;
+        }
+        $page = isset($payload['page']) ? (int)$payload['page'] : 1;
+        $reset = !empty($payload['reset']);
+        $result = kontur_np_import_page($this->db, $key, $page, $reset);
+        $this->response->setOutput(json_encode($result, JSON_UNESCAPED_UNICODE));
+    }
+
     public function install() {
         require_once(DIR_SYSTEM . 'library/kontur_checkout_data.php');
 
@@ -95,6 +137,9 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $this->load->model('user/user_group');
         $this->model_user_user_group->addPermission($this->user->getGroupId(), 'access', 'extension/module/kontur_checkout');
         $this->model_user_user_group->addPermission($this->user->getGroupId(), 'modify', 'extension/module/kontur_checkout');
+
+        require_once(DIR_SYSTEM . 'library/kontur_np.php');
+        kontur_np_ensure($this->db);
     }
 
     public function uninstall() {
@@ -103,5 +148,8 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
         $this->load->model('setting/setting');
         $this->model_setting_setting->deleteSetting('module_kontur_checkout');
+
+        require_once(DIR_SYSTEM . 'library/kontur_np.php');
+        kontur_np_drop($this->db);
     }
 }
