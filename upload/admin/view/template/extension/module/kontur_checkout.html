@@ -309,6 +309,8 @@ window.KONTUR_SAVE_URL = "__KONTUR_SAVE_URL__";
 window.KONTUR_BACK_URL = "__KONTUR_BACK_URL__";
 window.KONTUR_NP_SYNC_URL = "__KONTUR_NP_SYNC_URL__";
 window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
+window.KONTUR_UP_SYNC_URL = "__KONTUR_UP_SYNC_URL__";
+window.KONTUR_UP_STATUS_URL = "__KONTUR_UP_STATUS_URL__";
 </script>
 
 
@@ -832,6 +834,26 @@ window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
                         </div>
                     </div>
 
+                    <!-- API Укрпошти -->
+                    <div class="border border-borderLight rounded p-3.5 space-y-3 bg-surface/60">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-semibold text-ink">Укрпошта (Довідник відділень)</div>
+                            <span id="up-db-badge" class="px-2 py-0.5 bg-neutral-100 border border-borderLight text-neutral-500 font-mono text-[10px] rounded">База не завантажена</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-neutral-600 mb-1">Bearer адресного класифікатора</label>
+                            <input type="text" id="cfg-up-bearer" value="" oninput="config.integrations.upBearer = this.value.trim()" placeholder="11111111-2222-3333-aaaa-bcdef1234567" class="w-full px-2.5 py-1.5 text-xs font-mono border border-borderLight rounded bg-white outline-none focus:border-ink">
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-medium text-ink">База відділень у магазині</div>
+                                <div id="up-db-status" class="text-[11px] text-neutral-400">Відправлення не створюються. Ключ потрібен лише щоб завантажити довідник.</div>
+                                <div id="up-db-progress" class="text-[11px] font-mono text-neutral-500 mt-1"></div>
+                            </div>
+                            <button type="button" id="up-db-load" onclick="loadUpDatabase()" class="shrink-0 px-3 py-1.5 text-[11px] font-medium bg-ink text-white rounded hover:bg-neutral-800">Завантажити базу</button>
+                        </div>
+                    </div>
+
                     <!-- Валідація українських операторів -->
                     <div class="border border-borderLight rounded p-3.5 space-y-2.5">
                         <div class="flex items-center justify-between gap-3">
@@ -1210,6 +1232,7 @@ window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
             integrations: {
                 npApiKey: 'np_live_98a4f21c8e7b304d91a2',
                 npLiveSearch: true,
+                upBearer: '',
                 validateUaOperator: true,
                 gatewayMonobank: true,
                 gatewayWayForPay: true,
@@ -1773,6 +1796,10 @@ window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
             document.getElementById('cfg-custom-css').value = config.theme.customCss;
             applyCustomCss(config.theme.customCss);
             syncThemeControlsUi();
+            var npKeyInput = document.getElementById('cfg-np-api-key');
+            if (npKeyInput && config.integrations.npApiKey) npKeyInput.value = config.integrations.npApiKey;
+            var upBearerInput = document.getElementById('cfg-up-bearer');
+            if (upBearerInput) upBearerInput.value = config.integrations.upBearer || '';
 
             const switchStates = {
                 'sw-shipping-first': config.shippingMethodFirst,
@@ -2441,7 +2468,7 @@ window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
         function openJsonModal() {
             const payload = {
                 module: 'extension/module/kontur_checkout',
-                version: '2.5.2',
+                version: '2.5.3',
                 settings: config
             };
             document.getElementById('json-export-output').textContent = JSON.stringify(payload, null, 2);
@@ -2581,6 +2608,92 @@ window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
             step(true);
         }
 
+        function refreshUpStatus() {
+            if (!window.KONTUR_UP_STATUS_URL) return;
+            fetch(window.KONTUR_UP_STATUS_URL, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
+                var badge = document.getElementById('up-db-badge');
+                var line = document.getElementById('up-db-status');
+                if (!data || !badge) return;
+                if (data.offices > 0) {
+                    badge.textContent = npFormat(data.offices) + ' відділень';
+                    badge.className = 'px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-[10px] rounded';
+                    if (line) line.textContent = npFormat(data.cities) + ' населених пунктів' + (data.updated ? ' · оновлено ' + data.updated : '') + '. Відправлення не створюються.';
+                } else {
+                    badge.textContent = 'База не завантажена';
+                    badge.className = 'px-2 py-0.5 bg-neutral-100 border border-borderLight text-neutral-500 font-mono text-[10px] rounded';
+                    if (line) line.textContent = 'Вставте Bearer адресного класифікатора і завантажте довідник. Відправлення не створюються.';
+                }
+            }).catch(function () {});
+        }
+
+        function loadUpDatabase() {
+            var input = document.getElementById('cfg-up-bearer');
+            var bearer = input ? input.value.trim() : '';
+            var progress = document.getElementById('up-db-progress');
+            var btn = document.getElementById('up-db-load');
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bearer)) {
+                showToast('Потрібен Bearer Укрпошти у форматі UUID');
+                return;
+            }
+            config.integrations.upBearer = bearer;
+            if (btn) btn.disabled = true;
+            function post(body) {
+                return fetch(window.KONTUR_UP_SYNC_URL, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                }).then(function (r) { return r.json(); });
+            }
+            if (progress) progress.textContent = 'Отримую області…';
+            post({ bearer: bearer, step: 'regions' }).then(function (data) {
+                if (!data || data.error || !data.regions || !data.regions.length) {
+                    if (btn) btn.disabled = false;
+                    if (progress) progress.textContent = '';
+                    showToast(data && data.error ? data.error : 'Укрпошта не повернула області');
+                    return;
+                }
+                var regions = data.regions;
+                var index = 0;
+                function next() {
+                    if (index >= regions.length) {
+                        post({ bearer: bearer, step: 'finish' }).then(function (done) {
+                            if (btn) btn.disabled = false;
+                            if (progress) progress.textContent = '';
+                            if (!done || !done.offices) showToast('Області отримано, але відділень 0. Перевірте Bearer адресного класифікатора.');
+                            else showToast('Базу відділень Укрпошти завантажено: ' + npFormat(done.offices));
+                            refreshUpStatus();
+                        }).catch(function () {
+                            if (btn) btn.disabled = false;
+                            refreshUpStatus();
+                        });
+                        return;
+                    }
+                    var region = regions[index];
+                    if (progress) progress.textContent = 'Область ' + (index + 1) + ' з ' + regions.length + ' · ' + region.name;
+                    post({ bearer: bearer, step: 'region', region_id: region.id, reset: index === 0 }).then(function (stepData) {
+                        if (!stepData || stepData.error) {
+                            if (btn) btn.disabled = false;
+                            showToast(stepData && stepData.error ? stepData.error : 'Помилка завантаження області');
+                            return;
+                        }
+                        if (progress && stepData.offices) {
+                            progress.textContent = region.name + ' · вже ' + npFormat(stepData.offices) + ' відділень';
+                        }
+                        index += 1;
+                        next();
+                    }).catch(function () {
+                        if (btn) btn.disabled = false;
+                        showToast('Помилка з\'єднання з Укрпоштою');
+                    });
+                }
+                next();
+            }).catch(function () {
+                if (btn) btn.disabled = false;
+                showToast('Помилка з\'єднання з Укрпоштою');
+            });
+        }
+
         function showToast(msg) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -2602,6 +2715,7 @@ window.KONTUR_NP_STATUS_URL = "__KONTUR_NP_STATUS_URL__";
             syncAllAdminUi();
             renderLiveStorefront();
             refreshNpStatus();
+            refreshUpStatus();
         });
     </script>
 </body>

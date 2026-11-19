@@ -36,6 +36,8 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $back = html_entity_decode($this->url->link('marketplace/extension', $token_key . '=' . $token . '&type=module', true), ENT_QUOTES, 'UTF-8');
         $np_sync = html_entity_decode($this->url->link('extension/module/kontur_checkout/npSync', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
         $np_status = html_entity_decode($this->url->link('extension/module/kontur_checkout/npStatus', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
+        $up_sync = html_entity_decode($this->url->link('extension/module/kontur_checkout/upSync', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
+        $up_status = html_entity_decode($this->url->link('extension/module/kontur_checkout/upStatus', $token_key . '=' . $token, true), ENT_QUOTES, 'UTF-8');
 
         $json = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
@@ -44,6 +46,8 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $html = str_replace('__KONTUR_BACK_URL__', $back, $html);
         $html = str_replace('__KONTUR_NP_SYNC_URL__', $np_sync, $html);
         $html = str_replace('__KONTUR_NP_STATUS_URL__', $np_status, $html);
+        $html = str_replace('__KONTUR_UP_SYNC_URL__', $up_sync, $html);
+        $html = str_replace('__KONTUR_UP_STATUS_URL__', $up_status, $html);
 
         $this->response->setOutput($html);
     }
@@ -116,6 +120,57 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $this->response->setOutput(json_encode($result, JSON_UNESCAPED_UNICODE));
     }
 
+    public function upStatus() {
+        $this->response->addHeader('Content-Type: application/json; charset=utf-8');
+        if (!$this->user->hasPermission('access', 'extension/module/kontur_checkout')) {
+            $this->response->setOutput(json_encode(array('error' => 'Немає доступу')));
+            return;
+        }
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
+        $counts = kontur_up_ready($this->db) ? kontur_up_counts($this->db) : array('offices' => 0, 'cities' => 0);
+        $meta = kontur_up_meta_read($this->db);
+        $this->response->setOutput(json_encode(array(
+            'offices' => $counts['offices'],
+            'cities' => $counts['cities'],
+            'updated' => isset($meta['updated']) ? $meta['updated'] : ''
+        )));
+    }
+
+    public function upSync() {
+        $this->response->addHeader('Content-Type: application/json; charset=utf-8');
+        if (!$this->user->hasPermission('modify', 'extension/module/kontur_checkout')) {
+            $this->response->setOutput(json_encode(array('error' => 'Немає прав на зміну модуля')));
+            return;
+        }
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            $payload = array();
+        }
+        $bearer = isset($payload['bearer']) ? trim((string)$payload['bearer']) : '';
+        if (!kontur_up_bearer_ok($bearer)) {
+            $this->response->setOutput(json_encode(array('error' => 'Потрібен Bearer адресного класифікатора Укрпошти (UUID). Відправлення не створюються.')));
+            return;
+        }
+        $step = isset($payload['step']) ? (string)$payload['step'] : '';
+        if ($step === 'regions') {
+            $this->response->setOutput(json_encode(kontur_up_regions($bearer), JSON_UNESCAPED_UNICODE));
+            return;
+        }
+        if ($step === 'region') {
+            $result = kontur_up_import_region($this->db, $bearer, isset($payload['region_id']) ? $payload['region_id'] : '', !empty($payload['reset']));
+            $this->response->setOutput(json_encode($result, JSON_UNESCAPED_UNICODE));
+            return;
+        }
+        if ($step === 'finish') {
+            $counts = kontur_up_finish($this->db);
+            $counts['success'] = true;
+            $this->response->setOutput(json_encode($counts));
+            return;
+        }
+        $this->response->setOutput(json_encode(array('error' => 'Невідомий крок завантаження')));
+    }
+
     public function install() {
         require_once(DIR_SYSTEM . 'library/kontur_checkout_data.php');
 
@@ -140,6 +195,8 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
         require_once(DIR_SYSTEM . 'library/kontur_np.php');
         kontur_np_ensure($this->db);
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
+        kontur_up_ensure($this->db);
     }
 
     public function uninstall() {
@@ -151,5 +208,7 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
         require_once(DIR_SYSTEM . 'library/kontur_np.php');
         kontur_np_drop($this->db);
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
+        kontur_up_drop($this->db);
     }
 }

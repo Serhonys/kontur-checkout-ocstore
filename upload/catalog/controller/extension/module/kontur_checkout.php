@@ -33,7 +33,7 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
         $font = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap';
         $this->document->addStyle($font);
-        $this->document->addStyle('catalog/view/javascript/kontur_checkout/checkout.css?v=2.5.2');
+        $this->document->addStyle('catalog/view/javascript/kontur_checkout/checkout.css?v=2.5.3');
 
         $data = array();
         $data['heading_title'] = $this->language->get('heading_title');
@@ -78,9 +78,11 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
         $data['cities'] = isset($config['quickCities']) ? $config['quickCities'] : array();
         $data['np_live'] = !empty($config['integrations']['npLiveSearch']);
         require_once(DIR_SYSTEM . 'library/kontur_np.php');
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
         $data['np_db'] = kontur_np_ready($this->db) && kontur_np_counts($this->db)['warehouses'] > 0;
+        $data['up_db'] = kontur_up_ready($this->db) && kontur_up_counts($this->db)['offices'] > 0;
         $data['badges'] = $this->integrationBadges($config);
-        $data['script_url'] = ($this->request->server['HTTPS'] ? HTTPS_SERVER : HTTP_SERVER) . 'catalog/view/javascript/kontur_checkout/checkout.js?v=2.5.2';
+        $data['script_url'] = ($this->request->server['HTTPS'] ? HTTPS_SERVER : HTTP_SERVER) . 'catalog/view/javascript/kontur_checkout/checkout.js?v=2.5.3';
         $data['boot_json'] = json_encode($this->boot($config, $data['has_shipping']), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
         $data['header'] = $this->load->controller('common/header');
@@ -394,6 +396,27 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
             $q = substr($q, 0, 64);
         }
         $this->jsonOut(array('cities' => kontur_np_cities($this->db, $q, 12)));
+    }
+
+    public function upOffices() {
+        $this->response->addHeader('Content-Type: application/json; charset=utf-8');
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
+        $city = isset($this->request->get['city']) ? trim($this->request->get['city']) : '';
+        $q = isset($this->request->get['q']) ? trim($this->request->get['q']) : '';
+        $ref = isset($this->request->get['ref']) ? trim($this->request->get['ref']) : '';
+        $this->jsonOut(array('offices' => kontur_up_offices($this->db, $city, $ref, $q, 100)));
+    }
+
+    public function upCities() {
+        $this->response->addHeader('Content-Type: application/json; charset=utf-8');
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
+        $q = isset($this->request->get['q']) ? trim($this->request->get['q']) : '';
+        if (function_exists('mb_substr')) {
+            $q = mb_substr($q, 0, 64, 'UTF-8');
+        } else {
+            $q = substr($q, 0, 64);
+        }
+        $this->jsonOut(array('cities' => kontur_up_cities($this->db, $q, 12)));
     }
 
     private function guardCart() {
@@ -818,6 +841,7 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
 
     private function boot($config, $has_shipping) {
         require_once(DIR_SYSTEM . 'library/kontur_np.php');
+        require_once(DIR_SYSTEM . 'library/kontur_up.php');
         $currency = $this->session->data['currency'];
         $symbol = $this->currency->getSymbolRight($currency);
         if (!$symbol) {
@@ -844,6 +868,7 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
             'npLive' => !empty($config['integrations']['npLiveSearch']),
             'npReal' => $this->npKeyIsReal($config),
             'npDb' => kontur_np_ready($this->db) && kontur_np_counts($this->db)['warehouses'] > 0,
+            'upDb' => kontur_up_ready($this->db) && kontur_up_counts($this->db)['offices'] > 0,
             'giftPrice' => kontur_checkout_gift_price(),
             'showGift' => !empty($config['showGiftWrap']),
             'showPromo' => !empty($config['showPromo']),
@@ -860,6 +885,8 @@ class ControllerExtensionModuleKonturCheckout extends Controller {
                 'coupon' => $this->url->link('extension/module/kontur_checkout/coupon', '', true),
                 'branches' => $this->url->link('extension/module/kontur_checkout/branches', '', true),
                 'cities' => $this->url->link('extension/module/kontur_checkout/cities', '', true),
+                'upOffices' => $this->url->link('extension/module/kontur_checkout/upOffices', '', true),
+                'upCities' => $this->url->link('extension/module/kontur_checkout/upCities', '', true),
                 'cartPage' => $this->url->link('checkout/cart'),
                 'success' => $this->url->link('checkout/success', '', true)
             ),

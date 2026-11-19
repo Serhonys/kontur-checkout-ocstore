@@ -18,7 +18,9 @@
     seconds: 15 * 60,
     branchTimer: null,
     citySeq: 0,
-    branchSeq: 0
+    branchSeq: 0,
+    upSeq: 0,
+    upLock: false
   };
 
   function $(id) { return document.getElementById(id); }
@@ -107,7 +109,7 @@
   }
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
   }
   function extraHtml() {
@@ -264,6 +266,7 @@
     var addr = $('pickup-address');
     if (addr && ship) addr.textContent = ship.subtitle || '';
     fillBranches();
+    fillUp();
     syncPayments();
     render();
   }
@@ -271,7 +274,7 @@
     var select = $('select-branch');
     if (!select) return;
     var city = ($('input-city') && $('input-city').value.trim()) || '';
-    var cityRef = ($('input-city') && $('input-city').dataset.ref) || '';
+    var cityRef = ($('input-city') && $('input-city').dataset.refSource === 'np') ? ($('input-city').dataset.ref || '') : '';
     var q = ($('branch-search') && $('branch-search').value.trim()) || '';
     var apply = function (rows, fromDb) {
       var previous = select.value;
@@ -519,11 +522,13 @@
       if ($('input-city')) {
         $('input-city').value = btn.getAttribute('data-city');
         $('input-city').dataset.ref = '';
+        $('input-city').dataset.refSource = '';
       }
       document.querySelectorAll('[data-city]').forEach(function (b) { b.classList.toggle('on', b === btn); });
       var box = $('city-ac');
       if (box) box.classList.remove('on');
       fillBranches();
+      fillUp();
     });
   });
   function bindCityPicks(box) {
@@ -531,8 +536,10 @@
       b.addEventListener('click', function () {
         $('input-city').value = b.getAttribute('data-pick');
         $('input-city').dataset.ref = b.getAttribute('data-ref') || '';
+        $('input-city').dataset.refSource = b.getAttribute('data-source') || '';
         box.classList.remove('on');
         fillBranches();
+        fillUp();
       });
     });
   }
@@ -541,16 +548,21 @@
     if (!box) return;
     var val = raw.trim().toLowerCase();
     if (!val) { box.classList.remove('on'); return; }
-    if (boot.npDb && raw.trim().length >= 2 && boot.urls.cities) {
+    var ship = activeShip();
+    var useUp = !!(boot.upDb && ship && ship.addressType === 'postcode' && boot.urls.upCities);
+    var useNp = !!(boot.npDb && !useUp && boot.urls.cities);
+    if ((useUp || useNp) && raw.trim().length >= 2) {
       var seq = ++state.citySeq;
-      var url = boot.urls.cities + (boot.urls.cities.indexOf('?') === -1 ? '?' : '&') + 'q=' + encodeURIComponent(raw.trim());
+      var base = useUp ? boot.urls.upCities : boot.urls.cities;
+      var source = useUp ? 'up' : 'np';
+      var url = base + (base.indexOf('?') === -1 ? '?' : '&') + 'q=' + encodeURIComponent(raw.trim());
       fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
         if (seq !== state.citySeq) return;
         var items = (data && data.cities) || [];
         if (!items.length) { box.classList.remove('on'); return; }
         box.innerHTML = items.map(function (c) {
           var side = c.area ? c.area : 'Україна';
-          return '<button type="button" data-pick="' + escapeHtml(c.name) + '" data-ref="' + escapeHtml(c.ref || '') + '"><span>' + escapeHtml(c.name) + '</span><span style="color:#a3a3a3;">' + escapeHtml(side) + '</span></button>';
+          return '<button type="button" data-pick="' + escapeHtml(c.name) + '" data-ref="' + escapeHtml(c.ref || '') + '" data-source="' + source + '"><span>' + escapeHtml(c.name) + '</span><span style="color:#a3a3a3;">' + escapeHtml(side) + '</span></button>';
         }).join('');
         box.classList.add('on');
         bindCityPicks(box);
@@ -568,12 +580,54 @@
   if ($('input-city')) {
     $('input-city').addEventListener('input', function () {
       this.dataset.ref = '';
+      this.dataset.refSource = '';
       var raw = this.value;
       clearTimeout(state.branchTimer);
       state.branchTimer = setTimeout(function () {
         fillBranches();
+        fillUp();
         suggestCities(raw);
       }, 250);
+    });
+  }
+  function fillUp() {
+    var select = $('select-up');
+    if (!select || !boot.upDb || !boot.urls.upOffices) return;
+    var city = ($('input-city') && $('input-city').value.trim()) || '';
+    var cityRef = ($('input-city') && $('input-city').dataset.refSource === 'up') ? ($('input-city').dataset.ref || '') : '';
+    var q = ($('up-search') && $('up-search').value.trim()) || '';
+    var typedIndex = ($('input-postcode') && $('input-postcode').value.trim()) || '';
+    if (!q && typedIndex.length >= 3) q = typedIndex;
+    if (!city && !cityRef && !/^\d{3,5}$/.test(q)) return;
+    var seq = ++state.upSeq;
+    var url = boot.urls.upOffices + (boot.urls.upOffices.indexOf('?') === -1 ? '?' : '&') + 'city=' + encodeURIComponent(city) + '&ref=' + encodeURIComponent(cityRef) + '&q=' + encodeURIComponent(q);
+    fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
+      if (seq !== state.upSeq) return;
+      var rows = (data && data.offices) || [];
+      var previous = select.value;
+      var html = '<option value="">— Оберіть відділення Укрпошти —</option>';
+      rows.forEach(function (row) {
+        html += '<option value="' + escapeHtml(row.label) + '" data-postcode="' + escapeHtml(row.postcode || '') + '">' + escapeHtml(row.label) + '</option>';
+      });
+      select.innerHTML = html;
+      if (previous) select.value = previous;
+    }).catch(function () {});
+  }
+  if ($('select-up')) {
+    $('select-up').addEventListener('change', function () {
+      var opt = this.options[this.selectedIndex];
+      if ($('input-up')) $('input-up').value = this.value;
+      if (opt && opt.getAttribute('data-postcode') && $('input-postcode')) {
+        state.upLock = true;
+        $('input-postcode').value = opt.getAttribute('data-postcode');
+        state.upLock = false;
+      }
+    });
+  }
+  if ($('up-search')) {
+    $('up-search').addEventListener('input', function () {
+      clearTimeout(state.branchTimer);
+      state.branchTimer = setTimeout(fillUp, 250);
     });
   }
   if ($('branch-search')) {
@@ -610,7 +664,12 @@
     });
   }
   var post = $('input-postcode');
-  if (post) post.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').substring(0, 5); });
+  if (post) post.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').substring(0, 5);
+    if (state.upLock) return;
+    clearTimeout(state.branchTimer);
+    state.branchTimer = setTimeout(fillUp, 250);
+  });
   var edr = $('input-edrpou');
   if (edr) edr.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').substring(0, 10); });
 

@@ -204,7 +204,16 @@
                   </div>
                   <div>
                     <label class="k-label" for="input-up">Номер відділення або вулиця <span class="k-req">*</span></label>
+                    {% if up_db %}<span class="k-hint ok">База УП</span>{% endif %}
+                    {% if up_db %}
+                    <input type="text" id="up-search" class="oc-input" placeholder="Пошук за індексом або адресою..." style="margin-bottom:8px;">
+                    <div class="k-select-wrap">
+                      <select id="select-up" class="oc-input"></select>
+                    </div>
+                    <input type="hidden" id="input-up" value="">
+                    {% else %}
                     <input type="text" id="input-up" class="oc-input" placeholder="Відділення №1, вул. Хрещатик, 22">
+                    {% endif %}
                     <p class="k-error" id="error-up_branch"></p>
                   </div>
                 </div>

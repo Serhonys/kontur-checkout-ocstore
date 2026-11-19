@@ -4,7 +4,7 @@
  * Версія модуля збігається з полем version у JSON-експорті адмінки.
  */
 function kontur_checkout_version() {
-    return '2.5.2';
+    return '2.5.3';
 }
 
 function kontur_checkout_defaults() {
@@ -98,6 +98,7 @@ function kontur_checkout_defaults() {
         'integrations' => array(
             'npApiKey' => 'np_live_98a4f21c8e7b304d91a2',
             'npLiveSearch' => true,
+            'upBearer' => '',
             'validateUaOperator' => true,
             'gatewayMonobank' => true,
             'gatewayWayForPay' => true,
